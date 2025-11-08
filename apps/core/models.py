@@ -87,7 +87,7 @@ class ProgramOutcome(models.Model):
                 self.code = f"PO-{cleaned_code}"
             elif not cleaned_code.startswith("PO-"):
                 raise ValidationError(
-                    {"code": 'PO code must start with "PO-" (e.g., PO-1, PO-2)'}
+                    {"code": 'Program Outcome code must start with "PO-"'}
                 )
             else:
                 self.code = cleaned_code

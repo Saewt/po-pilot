@@ -1,5 +1,5 @@
 from django.db import models
-from django.forms import ValidationError
+from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -15,7 +15,7 @@ class AssessmentGrade(models.Model):
     assessment = models.ForeignKey(
         "courses.Assessment", on_delete=models.CASCADE, related_name="grades")
     score = models.DecimalField(
-        max_digits=6,
+        max_digits=5,
         decimal_places=2,
         validators=[MinValueValidator(0), MaxValueValidator(100)],
     )

@@ -16,6 +16,9 @@ class Course(models.Model):
     code = models.CharField(max_length=10, help_text="The course code")
     name = models.CharField(max_length=100, help_text="The course name")
     semester = models.CharField(max_length=20, help_text="The semester of the course")
+    credit = models.PositiveSmallIntegerField(
+        help_text="The credit of the course",
+    )
     instructor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -133,7 +136,7 @@ class AssessmentToLOContribution(models.Model):
     )
 
     weight = models.DecimalField(
-        max_digits=1,
+        max_digits=2,
         decimal_places=1,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
@@ -165,7 +168,7 @@ class LOtoPOContribution(models.Model):
         related_name="lo_contributions",
     )
     weight = models.DecimalField(
-        max_digits=1,
+        max_digits=2,
         decimal_places=1,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
