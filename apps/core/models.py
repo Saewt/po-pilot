@@ -4,7 +4,6 @@ from django.db import models
 
 
 # Create your models here.
-#
 class Department(models.Model):
     name = models.CharField("Department Name", max_length=100)
     code = models.CharField(
@@ -27,7 +26,7 @@ class Department(models.Model):
 
     def clean(self):
         if self.code:
-            self.code = self.code.upper()
+            self.code = self.code.strip().upper()
         else:
             raise ValidationError("Department code cannot be empty")
 
@@ -38,6 +37,7 @@ class Department(models.Model):
 
 class ProgramOutcome(models.Model):
     """Program Outcomes (PO). Specific to each department."""
+    PO_PREFIX = "PO-"
 
     department = models.ForeignKey(
         Department,
@@ -84,10 +84,16 @@ class ProgramOutcome(models.Model):
             cleaned_code = self.code.strip().upper()
 
             if cleaned_code.isdigit():
-                self.code = f"PO-{cleaned_code}"
-            elif not cleaned_code.startswith("PO-"):
+                self.code = f"{self.PO_PREFIX}{cleaned_code}"
+            elif not cleaned_code.startswith(self.PO_PREFIX):
                 raise ValidationError(
-                    {"code": 'Program Outcome code must start with "PO-"'}
+                    {"code": f'Program Outcome code must start with "{self.PO_PREFIX}" or be a number.'}
                 )
             else:
                 self.code = cleaned_code
+        else:
+            raise ValidationError("Program Outcome code cannot be empty.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
