@@ -7,7 +7,7 @@
 - Scrape module
 
 **Kaan Mert Öztürk**
-- Co-developed the early-stage UI/Frontend in parallel with another teammate to explore multiple design and implementation approaches. The final version is still under evaluation and not yet released.
+- Co-developed the early-stage UI/Frontend in parallel with another teammate to explore multiple design and implementation approaches. The final version is still under evaluation and not yet decided on.
 
 **Abdülmelik Karaçay**
-- Co-developed the early-stage UI/Frontend in parallel with another teammate to explore multiple design and implementation approaches. The final version is still under evaluation and not yet released.
+- Co-developed the early-stage UI/Frontend in parallel with another teammate to explore multiple design and implementation approaches. The final version is still under evaluation and not yet decided on.
