@@ -13,7 +13,7 @@ class UserMeSerializer(serializers.ModelSerializer):
             "id", "email", "role", "department", "department_name", 
             "student_id", "first_name", "last_name", "active_courses"
         )
-        depth = 1
+        read_only_fields = ("id", "email", "role", "department", "department_name", "active_courses")
     
     def get_active_courses(self, obj):
         """Get active enrolled courses for students."""

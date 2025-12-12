@@ -17,6 +17,8 @@ class AssessmentGradeSerializer(serializers.ModelSerializer):
         source="assessment",
         write_only=True,
     )
+
+    
     student = UserSerializer(read_only=True)
     student_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role="STUDENT"),
@@ -30,7 +32,9 @@ class AssessmentGradeSerializer(serializers.ModelSerializer):
             "id", "student", "student_id", "assessment", "assessment_id",
             "score", "entered_by", "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "entered_by"]
+        read_only_fields = [
+            "id", "student", "assessment", "created_at", "updated_at", "entered_by"
+        ]
     
     def validate(self, data):
         """Validate grade data."""

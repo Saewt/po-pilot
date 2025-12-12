@@ -90,7 +90,7 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "PO Pilot API",
     "DESCRIPTION": "API documentation for the PO Pilot project.",
-    "VERSION": "1.0.0",
+    "VERSION": "1.0.2",
 }
 
 ROOT_URLCONF = "po_pilot.urls"

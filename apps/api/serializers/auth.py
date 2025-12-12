@@ -66,3 +66,8 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
     Custom Refresh Serializer for documentation.
     """
     pass
+
+
+class LogoutSerializer(serializers.Serializer):
+    """Serializer for logout request."""
+    refresh = serializers.CharField()

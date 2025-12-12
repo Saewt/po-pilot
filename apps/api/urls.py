@@ -5,7 +5,8 @@ from .views.auth import RegisterView, LoginView, CustomTokenRefreshView, LogoutV
 from apps.api.views.courses import (
     CourseTemplateViewSet,
     CourseInstanceViewSet,
-    AssessmentViewSet
+    AssessmentViewSet,
+    LearningOutcomeViewSet
 )
 from apps.api.views.grades import GradeViewSet
 from apps.api.views.core import (
@@ -20,6 +21,7 @@ router.register(r"departments", DepartmentViewSet, basename="department")
 router.register(r"program-outcomes", ProgramOutcomeViewSet, basename="program-outcome")
 router.register(r"lo-po-contributions", LOToPOContributionViewSet, basename="lo-po-contribution")
 router.register(r"course-templates", CourseTemplateViewSet, basename="course-template")
+router.register(r"learning-outcomes", LearningOutcomeViewSet, basename="learning-outcome")
 router.register(r"course-instances", CourseInstanceViewSet, basename="course-instance")
 router.register(r"assessments", AssessmentViewSet, basename="assessment")
 router.register(r"grades", GradeViewSet, basename="grade")

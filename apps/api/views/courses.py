@@ -4,7 +4,7 @@ from rest_framework import permissions, serializers
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from apps.api.permissions import IsDepartmentHead, IsInstructor, IsStudent, IsCourseInstructor
 
-from apps.courses.models import CourseTemplate, CourseInstance, Assessment
+from apps.courses.models import CourseTemplate, CourseInstance, Assessment, LearningOutcome
 from apps.api.serializers.courses import (
     CourseTemplateSerializer,
     CourseTemplateDetailSerializer,
@@ -12,7 +12,35 @@ from apps.api.serializers.courses import (
     CourseInstanceDetailSerializer,
     AssessmentSerializer,
     AssessmentDetailSerializer,
+    LearningOutcomeSerializer,
+    LearningOutcomeDetailSerializer,
 )
+
+
+class LearningOutcomeViewSet(ModelViewSet):
+    queryset = LearningOutcome.objects.select_related("course_template").all()
+    
+    def get_permissions(self):
+        """
+        Read: All authenticated users.
+        Write: Department Heads and Admins only.
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsDepartmentHead | IsAdminUser]
+        return [permission() for permission in permission_classes]
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return LearningOutcomeDetailSerializer
+        return LearningOutcomeSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action == 'retrieve':
+            queryset = queryset.prefetch_related('po_contributions', 'assessment_contributions')
+        return queryset
 
 
 class CourseTemplateViewSet(ModelViewSet):

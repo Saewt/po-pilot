@@ -7,7 +7,8 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 from apps.api.serializers.auth import (
     RegisterSerializer, 
     LoginSerializer, 
-    CustomTokenRefreshSerializer
+    CustomTokenRefreshSerializer,
+    LogoutSerializer
 )
 
 class RegisterView(generics.CreateAPIView):
@@ -58,11 +59,12 @@ class CustomTokenRefreshView(TokenRefreshView):
 
 class LogoutView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = LogoutSerializer
     
     @extend_schema(
         summary="Logout (Blacklist Token)",
         description="Blacklists the refresh token.",
-        request=None,
+        request=LogoutSerializer,
         responses={
             205: OpenApiResponse(description="Successfully logged out"),
             400: OpenApiResponse(description="Bad Request")

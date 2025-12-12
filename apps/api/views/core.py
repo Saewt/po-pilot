@@ -58,6 +58,11 @@ class ProgramOutcomeViewSet(ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        
+        # Security: Filter by user's department
+        if self.request.user.is_authenticated and self.request.user.department:
+            queryset = queryset.filter(department=self.request.user.department)
+            
         if self.action == 'retrieve':
             queryset = queryset.prefetch_related('lo_contributions').annotate(
                 lo_contributions_total_count=Count('lo_contributions', distinct=True),
@@ -68,6 +73,13 @@ class ProgramOutcomeViewSet(ModelViewSet):
                 )
             )
         return queryset
+
+    def perform_create(self, serializer):
+        """Auto-assign department and creator."""
+        serializer.save(
+            department=self.request.user.department,
+            created_by=self.request.user
+        )
 
 
 class LOToPOContributionViewSet(ModelViewSet):

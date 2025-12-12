@@ -65,21 +65,19 @@ class DepartmentDetailSerializer(serializers.ModelSerializer):
 class ProgramOutcomeSerializer(serializers.ModelSerializer):
     """Standard program outcome serializer."""
     department = DepartmentSerializer(read_only=True)
-    department_id = serializers.PrimaryKeyRelatedField(
-        queryset=Department.objects.all(), source="department", write_only=True
-    )
-    get_full_code = serializers.ReadOnlyField()
+    
     created_by_name = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = ProgramOutcome
         fields = [
-            "id", "department", "department_id", "code", "description",
+            "id", "department", "code", "description",
             "is_active", "created_by", "created_by_name", "created_at",
             "updated_at", "get_full_code",
         ]
         read_only_fields = [
-            "id", "created_at", "updated_at", "created_by", "get_full_code",
+            "id", "department", "created_at", "updated_at", "created_by", 
+            "created_by_name", "get_full_code",
         ]
     
     def get_created_by_name(self, obj):
@@ -90,34 +88,27 @@ class ProgramOutcomeSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Validate program outcome data."""
-        # Check if department is active
-        department = data.get('department')
-        if department and not department.is_active:
-            raise serializers.ValidationError({
-                "department": "Cannot create program outcome for inactive department."
-            })
+        # Department is now auto-assigned in view, so we don't validate it here from input
         return data
 
 
 class ProgramOutcomeDetailSerializer(serializers.ModelSerializer):
     """Detailed program outcome serializer with contribution data."""
     department = DepartmentSerializer(read_only=True)
-    department_id = serializers.PrimaryKeyRelatedField(
-        queryset=Department.objects.all(), source="department", write_only=True
-    )
-    get_full_code = serializers.ReadOnlyField()
+
     created_by_name = serializers.SerializerMethodField()
     lo_contributions_count = serializers.SerializerMethodField()
     
     class Meta:
         model = ProgramOutcome
         fields = [
-            "id", "department", "department_id", "code", "description",
+            "id", "department", "code", "description",
             "is_active", "created_by", "created_by_name", "created_at",
             "updated_at", "get_full_code", "lo_contributions_count",
         ]
         read_only_fields = [
-            "id", "created_at", "updated_at", "created_by", "get_full_code",
+            "id", "department", "created_at", "updated_at", "created_by", 
+            "created_by_name", "get_full_code",
         ]
     
     def get_created_by_name(self, obj):

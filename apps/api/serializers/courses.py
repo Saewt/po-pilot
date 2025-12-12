@@ -16,19 +16,21 @@ from apps.api.serializers.users import UserSerializer
 
 class CourseTemplateSerializer(serializers.ModelSerializer):
     """Standard course template serializer for list views."""
-    department = DepartmentSerializer(read_only=True)
-    department_id = serializers.PrimaryKeyRelatedField(
-        queryset=Department.objects.all(), source="department", write_only=True
-    )
+    department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all())
     get_full_code = serializers.ReadOnlyField()
 
     class Meta:
         model = CourseTemplate
         fields = [
-            "id", "department", "department_id", "code", "name",
+            "id", "department", "code", "name",
             "credit", "description", "get_full_code",
         ]
         read_only_fields = ["id"]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['department'] = DepartmentSerializer(instance.department).data
+        return ret
 
 
 class CourseTemplateDetailSerializer(serializers.ModelSerializer):
@@ -72,20 +74,20 @@ class CourseTemplateDetailSerializer(serializers.ModelSerializer):
 
 class LearningOutcomeSerializer(serializers.ModelSerializer):
     """Standard learning outcome serializer."""
-    course_template = CourseTemplateSerializer(read_only=True)
-    course_template_id = serializers.PrimaryKeyRelatedField(
-        queryset=CourseTemplate.objects.all(),
-        source="course_template",
-        write_only=True,
-    )
+    course_template = serializers.PrimaryKeyRelatedField(queryset=CourseTemplate.objects.all())
 
     class Meta:
         model = LearningOutcome
         fields = [
-            "id", "course_template", "course_template_id", "code",
+            "id", "course_template", "code",
             "description", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['course_template'] = CourseTemplateSerializer(instance.course_template).data
+        return ret
 
 
 class LearningOutcomeDetailSerializer(serializers.ModelSerializer):
@@ -131,21 +133,25 @@ class LearningOutcomeDetailSerializer(serializers.ModelSerializer):
 
 class CourseInstanceSerializer(serializers.ModelSerializer):
     """Standard course instance serializer."""
-    course_template = CourseTemplateSerializer(read_only=True)
-    course_template_id = serializers.PrimaryKeyRelatedField(
-        queryset=CourseTemplate.objects.all(),
-        source="course_template",
-        write_only=True,
-    )
-    get_full_code = serializers.ReadOnlyField()
+    course_template = serializers.PrimaryKeyRelatedField(queryset=CourseTemplate.objects.all())
+
+    
+
 
     class Meta:
         model = CourseInstance
         fields = [
-            "id", "course_template", "course_template_id", "semester",
+            "id", "course_template", "semester",
             "year", "instructor", "students", "is_active", "get_full_code",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "get_full_code"]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Use simple representation for nested course template in instance list to avoid deep nesting recursion if any
+        # But we used CourseTemplateSerializer which uses DepartmentSerializer. Should be fine.
+        ret['course_template'] = CourseTemplateSerializer(instance.course_template).data
+        return ret
 
 
 class CourseInstanceDetailSerializer(serializers.ModelSerializer):
@@ -188,20 +194,20 @@ class CourseInstanceDetailSerializer(serializers.ModelSerializer):
 
 class AssessmentSerializer(serializers.ModelSerializer):
     """Standard assessment serializer."""
-    course_instance = CourseInstanceSerializer(read_only=True)
-    course_instance_id = serializers.PrimaryKeyRelatedField(
-        queryset=CourseInstance.objects.all(),
-        source="course_instance",
-        write_only=True,
-    )
+    course_instance = serializers.PrimaryKeyRelatedField(queryset=CourseInstance.objects.all())
 
     class Meta:
         model = Assessment
         fields = [
-            "id", "course_instance", "course_instance_id", "name",
+            "id", "course_instance", "name",
             "assessment_type", "max_score", "weight", "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['course_instance'] = CourseInstanceSerializer(instance.course_instance).data
+        return ret
     
     def validate(self, data):
         """Validate assessment data."""
@@ -294,6 +300,8 @@ class LOtoPOContributionSerializer(serializers.ModelSerializer):
         write_only=True,
     )
 
+
+
     class Meta:
         model = LOtoPOContribution
         fields = [
@@ -303,7 +311,8 @@ class LOtoPOContributionSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
         ]
         read_only_fields = [
-            "id", "created_at", "updated_at", "approved_by", "approved_at",
+            "id", "learning_outcome", "program_outcome", 
+            "created_at", "updated_at", "approved_by", "approved_at",
         ]
     
     def validate(self, data):
