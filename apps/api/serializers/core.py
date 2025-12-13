@@ -5,130 +5,150 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-class DepartmentSerializer(serializers.ModelSerializer):
-    """Lightweight department serializer for list views."""
+# -----------------------------------------------------------------------------
+# DEPARTMENT SERIALIZERS
+# -----------------------------------------------------------------------------
+
+class DepartmentWriteSerializer(serializers.ModelSerializer):
+    """Request schema for creating/updating departments."""
     
     class Meta:
         model = Department
-        fields = ["id", "name", "code", "is_active", "created_at", "updated_at"]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        fields = ["id", "name", "code", "is_active"]
+        read_only_fields = ["id"]
+
+
+class DepartmentListSerializer(serializers.ModelSerializer):
+    """Response summary for department lists."""
+    member_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Department
+        fields = ["id", "name", "code", "member_count"]
+
+
+class DepartmentSimpleSerializer(serializers.ModelSerializer):
+    """Simple nested serializer for other resources."""
+    
+    class Meta:
+        model = Department
+        fields = ["id", "name", "code"]
 
 
 class DepartmentDetailSerializer(serializers.ModelSerializer):
-    """Detailed department serializer with nested program outcomes."""
-    program_outcomes_count = serializers.SerializerMethodField()
-    active_program_outcomes_count = serializers.SerializerMethodField()
+    """Response detail for single department."""
     members_count = serializers.SerializerMethodField()
-    course_templates_count = serializers.SerializerMethodField()
+    program_outcomes_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Department
         fields = [
             "id", "name", "code", "is_active", "created_at", "updated_at",
-            "program_outcomes_count", "active_program_outcomes_count",
-            "members_count", "course_templates_count"
+            "members_count", "program_outcomes_count"
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
-    
-    def get_program_outcomes_count(self, obj):
-        """Get total program outcomes count."""
-        return getattr(obj, "program_outcomes_count", obj.program_outcomes.count())
-    
-    def get_active_program_outcomes_count(self, obj):
-        """Get active program outcomes count."""
-        return getattr(obj, "active_program_outcomes_count", obj.program_outcomes.filter(is_active=True).count())
-    
+
     def get_members_count(self, obj):
         """Get department members count by role."""
-        students = getattr(obj, "members_student_count", None)
-        instructors = getattr(obj, "members_instructor_count", None)
-        heads = getattr(obj, "members_head_count", None)
-        
-        if students is None:
-            students = obj.members.filter(role="STUDENT").count()
-        if instructors is None:
-            instructors = obj.members.filter(role="INSTRUCTOR").count()
-        if heads is None:
-            heads = obj.members.filter(role="DEPARTMENT_HEAD").count()
-            
         return {
-            "students": students,
-            "instructors": instructors,
-            "department_heads": heads,
+            "students": getattr(obj, "members_student_count", obj.members.filter(role="STUDENT").count()),
+            "instructors": getattr(obj, "members_instructor_count", obj.members.filter(role="INSTRUCTOR").count()),
+            "department_heads": getattr(obj, "members_head_count", obj.members.filter(role="DEPARTMENT_HEAD").count()),
         }
-    
-    def get_course_templates_count(self, obj):
-        """Get course templates count."""
-        return getattr(obj, "course_templates_count", obj.course_templates.count())
+
+    def get_program_outcomes_count(self, obj):
+        """Get total and active program outcomes count."""
+        total = getattr(obj, "program_outcomes_count", obj.program_outcomes.count())
+        active = getattr(obj, "active_program_outcomes_count", obj.program_outcomes.filter(is_active=True).count())
+        return {
+            "total": total,
+            "active": active
+        }
 
 
-class ProgramOutcomeSerializer(serializers.ModelSerializer):
-    """Standard program outcome serializer."""
-    department = DepartmentSerializer(read_only=True)
-    
-    created_by_name = serializers.SerializerMethodField()
-    
+# -----------------------------------------------------------------------------
+# PROGRAM OUTCOME SERIALIZERS
+# -----------------------------------------------------------------------------
+
+class ProgramOutcomeWriteSerializer(serializers.ModelSerializer):
+    """Request schema for creating/updating POs."""
+    department_id = serializers.PrimaryKeyRelatedField(
+        source="department",
+        queryset=Department.objects.all(),
+        write_only=True
+    )
+
     class Meta:
         model = ProgramOutcome
-        fields = [
-            "id", "department", "code", "description",
-            "is_active", "created_by", "created_by_name", "created_at",
-            "updated_at", "get_full_code",
-        ]
-        read_only_fields = [
-            "id", "department", "created_at", "updated_at", "created_by", 
-            "created_by_name", "get_full_code",
-        ]
-    
-    def get_created_by_name(self, obj):
-        """Get creator's full name."""
-        if obj.created_by:
-            return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.email
-        return None
-    
-    def validate(self, data):
-        """Validate program outcome data."""
-        # Department is now auto-assigned in view, so we don't validate it here from input
-        return data
+        fields = ["id", "department_id", "code", "description", "is_active"]
+        read_only_fields = ["id"]
+
+
+class ProgramOutcomeListSerializer(serializers.ModelSerializer):
+    """Response summary for PO lists."""
+    full_code = serializers.ReadOnlyField(source="get_full_code")
+
+    class Meta:
+        model = ProgramOutcome
+        fields = ["id", "full_code", "description", "is_active"]
 
 
 class ProgramOutcomeDetailSerializer(serializers.ModelSerializer):
-    """Detailed program outcome serializer with contribution data."""
-    department = DepartmentSerializer(read_only=True)
-
+    """Response detail for PO with metadata."""
+    full_code = serializers.ReadOnlyField(source="get_full_code")
+    department = DepartmentSimpleSerializer(read_only=True)
     created_by_name = serializers.SerializerMethodField()
     lo_contributions_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = ProgramOutcome
         fields = [
-            "id", "department", "code", "description",
-            "is_active", "created_by", "created_by_name", "created_at",
-            "updated_at", "get_full_code", "lo_contributions_count",
+            "id", "full_code", "description", "is_active", 
+            "created_at", "updated_at", "department", 
+            "created_by_name", "lo_contributions_count"
         ]
-        read_only_fields = [
-            "id", "department", "created_at", "updated_at", "created_by", 
-            "created_by_name", "get_full_code",
-        ]
-    
+        read_only_fields = ["id", "created_at", "updated_at"]
+
     def get_created_by_name(self, obj):
-        """Get creator's full name."""
         if obj.created_by:
             return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.email
         return None
-    
+
     def get_lo_contributions_count(self, obj):
-        """Get learning outcome contributions count."""
-        total = getattr(obj, "lo_contributions_total_count", None)
-        approved = getattr(obj, "lo_contributions_approved_count", None)
+        total = getattr(obj, "lo_contributions_total_count", obj.lo_contributions.count())
+        approved = getattr(obj, "lo_contributions_approved_count", obj.lo_contributions.filter(is_approved=True).count())
         
-        if total is None:
-            total = obj.lo_contributions.count()
-        if approved is None:
-            approved = obj.lo_contributions.filter(is_approved=True).count()
-            
         return {
             "total": total,
             "approved": approved,
             "pending": total - approved,
         }
+
+
+class ProgramOutcomeLOSummarySerializer(serializers.ModelSerializer):
+    """Response for LO Summary action with detailed contribution info."""
+    contributions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ProgramOutcome
+        fields = ["id", "code", "description", "contributions"]
+
+    def get_contributions(self, obj):
+        # Using select_related/prefetch_related to optimize access
+        contributions = obj.lo_contributions.select_related('learning_outcome', 'approved_by').all()
+        return [
+            {
+                "id": c.id,
+                "learning_outcome": {
+                    "id": c.learning_outcome.id,
+                    "code": c.learning_outcome.code,
+                    "full_code": c.learning_outcome.get_full_code(),
+                    "description": c.learning_outcome.description
+                },
+                "weight": c.weight,
+                "is_approved": c.is_approved,
+                "approved_by": f"{c.approved_by.first_name} {c.approved_by.last_name}" if c.approved_by else None,
+                "status": "Approved" if c.is_approved else ("Rejected" if c.approved_by else "Pending") 
+            }
+            for c in contributions
+        ]

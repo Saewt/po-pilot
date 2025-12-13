@@ -6,7 +6,8 @@ from apps.api.views.courses import (
     CourseTemplateViewSet,
     CourseInstanceViewSet,
     AssessmentViewSet,
-    LearningOutcomeViewSet
+    LearningOutcomeViewSet,
+    AssessmentToLOContributionViewSet,
 )
 from apps.api.views.grades import GradeViewSet
 from apps.api.views.core import (
@@ -14,7 +15,7 @@ from apps.api.views.core import (
     ProgramOutcomeViewSet,
     LOToPOContributionViewSet
 )
-from apps.api.views.users import MeView
+from apps.api.views.users import MeView, UserViewSet
 
 router = DefaultRouter()
 router.register(r"departments", DepartmentViewSet, basename="department")
@@ -25,6 +26,8 @@ router.register(r"learning-outcomes", LearningOutcomeViewSet, basename="learning
 router.register(r"course-instances", CourseInstanceViewSet, basename="course-instance")
 router.register(r"assessments", AssessmentViewSet, basename="assessment")
 router.register(r"grades", GradeViewSet, basename="grade")
+router.register(r"users", UserViewSet, basename="user")
+router.register(r"assessment-lo-contributions", AssessmentToLOContributionViewSet, basename="assessment-lo-contribution")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),

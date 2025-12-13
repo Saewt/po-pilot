@@ -127,6 +127,20 @@ class Assessment(models.Model):
             verbose_name_plural = "Assessments"
             ordering = ["course_instance", "assessment_type", "name"]
 
+    def clean(self):
+        """Validate that total weights don't exceed 100%."""
+        from django.db.models import Sum
+        if self.weight and self.course_instance:
+            existing_total = self.course_instance.assessments.exclude(
+                pk=self.pk
+            ).aggregate(total=Sum('weight'))['total'] or 0
+            
+            new_total = existing_total + self.weight
+            if new_total > 100:
+                raise ValidationError({
+                    'weight': f"Total weight would be {new_total}%. Cannot exceed 100%. Current total: {existing_total}%."
+                })
+
     def __str__(self):
             return f"{self.course_instance.get_full_code()} - {self.name}"
 

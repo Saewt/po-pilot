@@ -12,6 +12,15 @@ class Department(models.Model):
     is_active = models.BooleanField("Is Active", default=True)
     created_at = models.DateTimeField("Created At", auto_now_add=True)
     updated_at = models.DateTimeField("Updated At", auto_now=True)
+    head = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Department Head",
+        related_name="headed_department",
+        limit_choices_to={"role": "DEPARTMENT_HEAD"},
+    )
 
     class Meta:
         verbose_name = "Department"

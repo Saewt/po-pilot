@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from apps.grades.models import AssessmentGrade
 from apps.courses.models import Assessment
-from .courses import AssessmentSerializer
+from .courses import AssessmentListSerializer
 from apps.api.serializers.users import UserSerializer
 
 User = get_user_model()
@@ -11,7 +11,7 @@ User = get_user_model()
 
 class AssessmentGradeSerializer(serializers.ModelSerializer):
     """Standard assessment grade serializer."""
-    assessment = AssessmentSerializer(read_only=True)
+    assessment = AssessmentListSerializer(read_only=True)
     assessment_id = serializers.PrimaryKeyRelatedField(
         queryset=Assessment.objects.all(),
         source="assessment",
@@ -60,7 +60,7 @@ class AssessmentGradeSerializer(serializers.ModelSerializer):
 
 class AssessmentGradeDetailSerializer(serializers.ModelSerializer):
     """Detailed assessment grade serializer with LO/PO contribution calculations."""
-    assessment = AssessmentSerializer(read_only=True)
+    assessment = AssessmentListSerializer(read_only=True)
     assessment_id = serializers.PrimaryKeyRelatedField(
         queryset=Assessment.objects.all(),
         source="assessment",
@@ -116,4 +116,3 @@ class StudentGradeReportSerializer(serializers.Serializer):
     total_weighted_score = serializers.DecimalField(max_digits=5, decimal_places=2)
     assessment_count = serializers.IntegerField()
     graded_count = serializers.IntegerField()
-

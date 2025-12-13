@@ -6,7 +6,7 @@ from apps.users.models import User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ("email",)
-    list_display = ("email", "first_name", "last_name", "role", "department", "is_staff")
+    list_display = ("id","email", "first_name", "last_name", "role", "department", "is_staff")
     list_filter = ("role", "department", "is_staff", "is_superuser", "is_active")
     search_fields = ("email", "first_name", "last_name", "student_id")
 

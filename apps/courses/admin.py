@@ -61,6 +61,32 @@ class CourseInstanceAdmin(admin.ModelAdmin):
         return obj.get_full_code()
     get_full_code.short_description = "Course Instance"
 
+    def get_form(self, request, obj=None, **kwargs):
+        # Store the object being edited on the request so we can access it 
+        # in formfield_for_manytomany
+        request._obj_ = obj
+        return super().get_form(request, obj, **kwargs)
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "students":
+            obj = getattr(request, "_obj_", None)
+            if obj:
+                # Filter students to only those in the same department
+                # We use the field's related model to get the manager, ensuring we respect existing limits if possible,
+                # but limit_choices_to is on the model field. 
+                # Better to start with the model's default manager or strict filter.
+                # db_field.remote_field.model is the User model
+                User = db_field.remote_field.model
+                kwargs["queryset"] = User.objects.filter(
+                   role="STUDENT",
+                   department=obj.course_template.department
+                )
+            else:
+                # If creating new, just show all students (or could be empty)
+                # Let's keep existing behavior (all students)
+                pass
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
 
 @admin.register(Assessment)
 class AssessmentAdmin(admin.ModelAdmin):

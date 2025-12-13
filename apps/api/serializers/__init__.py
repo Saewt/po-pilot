@@ -5,9 +5,12 @@ Exports all serializers for easy importing in views and APIs.
 
 # Core serializers
 from .core import (
-    DepartmentSerializer,
+    DepartmentWriteSerializer,
+    DepartmentListSerializer,
     DepartmentDetailSerializer,
-    ProgramOutcomeSerializer,
+    DepartmentSimpleSerializer,
+    ProgramOutcomeWriteSerializer,
+    ProgramOutcomeListSerializer,
     ProgramOutcomeDetailSerializer,
 )
 
@@ -22,16 +25,22 @@ from .users import (
 
 # Course serializers
 from .courses import (
-    CourseTemplateSerializer,
+    CourseTemplateWriteSerializer,
+    CourseTemplateListSerializer,
     CourseTemplateDetailSerializer,
-    CourseInstanceSerializer,
+    CourseInstanceWriteSerializer,
+    CourseInstanceListSerializer,
     CourseInstanceDetailSerializer,
-    LearningOutcomeSerializer,
+    LearningOutcomeWriteSerializer,
+    LearningOutcomeListSerializer,
     LearningOutcomeDetailSerializer,
-    AssessmentSerializer,
+    AssessmentWriteSerializer,
+    AssessmentListSerializer,
     AssessmentDetailSerializer,
-    AssessmentToLOContributionSerializer,
-    LOtoPOContributionSerializer,
+    AssessmentToLOContributionWriteSerializer,
+    AssessmentToLOContributionListSerializer,
+    LOtoPOContributionWriteSerializer,
+    LOtoPOContributionListSerializer,
     LOtoPOContributionDetailSerializer,
 )
 
@@ -54,9 +63,12 @@ from .achievements import (
 
 __all__ = [
     # Core
-    "DepartmentSerializer",
+    "DepartmentWriteSerializer",
+    "DepartmentListSerializer",
     "DepartmentDetailSerializer",
-    "ProgramOutcomeSerializer",
+    "DepartmentSimpleSerializer",
+    "ProgramOutcomeWriteSerializer",
+    "ProgramOutcomeListSerializer",
     "ProgramOutcomeDetailSerializer",
     # Users
     "UserMeSerializer",
@@ -65,16 +77,22 @@ __all__ = [
     "InstructorSerializer",
     "DepartmentHeadSerializer",
     # Courses
-    "CourseTemplateSerializer",
+    "CourseTemplateWriteSerializer",
+    "CourseTemplateListSerializer",
     "CourseTemplateDetailSerializer",
-    "CourseInstanceSerializer",
+    "CourseInstanceWriteSerializer",
+    "CourseInstanceListSerializer",
     "CourseInstanceDetailSerializer",
-    "LearningOutcomeSerializer",
+    "LearningOutcomeWriteSerializer",
+    "LearningOutcomeListSerializer",
     "LearningOutcomeDetailSerializer",
-    "AssessmentSerializer",
+    "AssessmentWriteSerializer",
+    "AssessmentListSerializer",
     "AssessmentDetailSerializer",
-    "AssessmentToLOContributionSerializer",
-    "LOtoPOContributionSerializer",
+    "AssessmentToLOContributionWriteSerializer",
+    "AssessmentToLOContributionListSerializer",
+    "LOtoPOContributionWriteSerializer",
+    "LOtoPOContributionListSerializer",
     "LOtoPOContributionDetailSerializer",
     # Grades
     "AssessmentGradeSerializer",

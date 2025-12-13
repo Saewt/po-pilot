@@ -5,10 +5,10 @@ from .models import Department, ProgramOutcome
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ("code", "name", "is_active", "created_at")
+    list_display = ("id", "code", "name", "head", "is_active", "created_at")
     list_filter = ("is_active",)
     search_fields = ("code", "name")
-    ordering = ("code",)
+    ordering = ("id",)
 
 
 @admin.register(ProgramOutcome)
@@ -24,6 +24,6 @@ class ProgramOutcomeAdmin(admin.ModelAdmin):
     search_fields = ("code", "description", "department__name")
 
     def save_model(self, request, obj, form, change):
-        if not obj.pk:
+        if not obj.pk and not obj.created_by:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)

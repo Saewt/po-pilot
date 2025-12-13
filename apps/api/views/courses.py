@@ -1,20 +1,35 @@
 from django.db.models import Count, Q
 from rest_framework.viewsets import ModelViewSet
-from rest_framework import permissions, serializers
+from rest_framework import permissions, serializers, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from apps.api.permissions import IsDepartmentHead, IsInstructor, IsStudent, IsCourseInstructor
 
-from apps.courses.models import CourseTemplate, CourseInstance, Assessment, LearningOutcome
+from apps.courses.models import CourseTemplate, CourseInstance, Assessment, LearningOutcome, AssessmentToLOContribution
 from apps.api.serializers.courses import (
-    CourseTemplateSerializer,
+    # Course Template
+    CourseTemplateWriteSerializer,
+    CourseTemplateListSerializer,
     CourseTemplateDetailSerializer,
-    CourseInstanceSerializer,
+    # Course Instance
+    CourseInstanceWriteSerializer,
+    CourseInstanceListSerializer,
     CourseInstanceDetailSerializer,
-    AssessmentSerializer,
+    # Assessment
+    AssessmentWriteSerializer,
+    AssessmentListSerializer,
     AssessmentDetailSerializer,
-    LearningOutcomeSerializer,
+    # Learning Outcome
+    LearningOutcomeWriteSerializer,
+    LearningOutcomeListSerializer,
     LearningOutcomeDetailSerializer,
+    # Contributions
+    AssessmentToLOContributionWriteSerializer,
+    AssessmentToLOContributionListSerializer,
+    LOtoPOContributionWriteSerializer, # If needed in generic views or specifically imported
 )
+# Note: LOtoPOContributionViewSet is in core.py, but used serializers from courses.py which I updated.
 
 
 class LearningOutcomeViewSet(ModelViewSet):
@@ -32,14 +47,31 @@ class LearningOutcomeViewSet(ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return LearningOutcomeWriteSerializer
         if self.action == 'retrieve':
             return LearningOutcomeDetailSerializer
-        return LearningOutcomeSerializer
+        return LearningOutcomeListSerializer
     
     def get_queryset(self):
         queryset = super().get_queryset()
+        user = self.request.user
+
+        # Filter by Course Template (Specific Course LOs)
+        course_template_id = self.request.query_params.get("course_template_id")
+        if course_template_id:
+            queryset = queryset.filter(course_template_id=course_template_id)
+        
+        # Filter by Scope (Department LOs)
+        scope = self.request.query_params.get("scope")
+        if scope == "department":
+            if user.is_authenticated and user.department:
+                 queryset = queryset.filter(course_template__department=user.department)
+            # If user has no department or not auth (unlikely due to perms), return empty or standard filtering
+        
         if self.action == 'retrieve':
             queryset = queryset.prefetch_related('po_contributions', 'assessment_contributions')
+        
         return queryset
 
 
@@ -58,9 +90,11 @@ class CourseTemplateViewSet(ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return CourseTemplateWriteSerializer
         if self.action == 'retrieve':
             return CourseTemplateDetailSerializer
-        return CourseTemplateSerializer
+        return CourseTemplateListSerializer
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -99,17 +133,31 @@ class CourseInstanceViewSet(ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return CourseInstanceWriteSerializer
         if self.action == 'retrieve':
             return CourseInstanceDetailSerializer
-        return CourseInstanceSerializer
+        return CourseInstanceListSerializer
 
     def get_queryset(self):
         """
         Filter queryset based on user role to ensure they only see what they're allowed to.
+        Supports ?instructor=me or ?instructor=current_user to filter by current user.
         """
         queryset = super().get_queryset()
         user = self.request.user
+        
+        # Instructor query parameter filter (for Dept Heads/Admins)
+        instructor_param = self.request.query_params.get('instructor')
+        if instructor_param in ['me', 'current_user']:
+            queryset = queryset.filter(instructor=user)
+        elif instructor_param:
+            try:
+                queryset = queryset.filter(instructor_id=int(instructor_param))
+            except (ValueError, TypeError):
+                pass  # Invalid ID, ignore filter
 
+        # Role-based visibility filtering
         if user.is_department_head() or user.is_staff or user.is_superuser:
             pass
         elif user.is_instructor():
@@ -121,7 +169,7 @@ class CourseInstanceViewSet(ModelViewSet):
 
         if self.action == 'retrieve':
             queryset = queryset.select_related(
-                'course_template', 'instructor'
+                'course_template__department', 'instructor'
             ).prefetch_related(
                 'students', 'assessments'
             ).annotate(
@@ -129,7 +177,7 @@ class CourseInstanceViewSet(ModelViewSet):
                 assessments_count=Count('assessments', distinct=True),
             )
         else:
-            queryset = queryset.select_related('course_template', 'instructor')
+            queryset = queryset.select_related('course_template__department', 'instructor')
         return queryset
 
 
@@ -151,9 +199,11 @@ class AssessmentViewSet(ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return AssessmentWriteSerializer
         if self.action == 'retrieve':
             return AssessmentDetailSerializer
-        return AssessmentSerializer
+        return AssessmentListSerializer
 
     def get_queryset(self):
         """
@@ -175,10 +225,76 @@ class AssessmentViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         """Validate course instructor for assessment creation."""
-        course_instance = serializer.validated_data.get('course_instance')
+        # Using .get('course_instance') might work if DRF maps source fields back?
+        # But safest is to check validated_data key: 'course_instance_id' (which holds the object because it's PK field)
+        # However, checking keys.
+        # If serializer field is 'course_instance_id' with source='course_instance', usually validated_data has 'course_instance'.
+        # Let's try grabbing both to be safe.
+        course_instance = serializer.validated_data.get('course_instance') 
+        # If None, try finding by field name if distinct? 
+        # DRF 3+ usually maps to source name in validated_data.
+        
         user = self.request.user
         
-        if user.is_instructor() and course_instance.instructor != user:
+        if user.is_instructor() and course_instance and course_instance.instructor != user:
             raise serializers.ValidationError("You can only create assessments for your own courses.")
             
+        serializer.save()
+
+
+class AssessmentToLOContributionViewSet(ModelViewSet):
+    """
+    ViewSet for managing Assessment to LO contributions.
+    Allows instructors to connect exam/quiz questions to Learning Outcomes.
+    """
+    queryset = AssessmentToLOContribution.objects.select_related(
+        'assessment', 'assessment__course_instance', 'learning_outcome'
+    ).all()
+    
+    def get_serializer_class(self):
+         if self.action in ['create', 'update', 'partial_update']:
+            return AssessmentToLOContributionWriteSerializer
+         # Simple list serializer for now, didn't create Detail for this explicitly in plan
+         # Reuse List serializer for detail/list as it's simple
+         return AssessmentToLOContributionListSerializer
+
+    
+    def get_permissions(self):
+        """
+        Create/Update/Delete: Course Instructor, Dept Head, or Admin.
+        Read: All authenticated users.
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [IsInstructor | IsDepartmentHead | IsAdminUser]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
+    def get_queryset(self):
+        """Filter based on user role."""
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        if user.is_department_head() or user.is_staff:
+            return queryset
+        
+        if user.is_instructor():
+            return queryset.filter(assessment__course_instance__instructor=user)
+        
+        if user.is_student():
+            return queryset.filter(assessment__course_instance__students=user)
+        
+        return queryset.none()
+    
+    def perform_create(self, serializer):
+        """Validate that instructor owns the assessment's course."""
+        # Field is assessment_id with source='assessment'
+        assessment = serializer.validated_data.get('assessment')
+        user = self.request.user
+        
+        if user.is_instructor() and assessment and assessment.course_instance.instructor != user:
+            raise serializers.ValidationError(
+                "You can only create LO contributions for assessments in your own courses."
+            )
+        
         serializer.save()
