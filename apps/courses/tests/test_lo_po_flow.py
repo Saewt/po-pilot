@@ -56,15 +56,19 @@ class LOPOFlowTests(APITestCase):
         # 1. Filter by Course 1
         response = self.client.get(url, {"course_template_id": self.course1.id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.lo1.id)
+        # Handle pagination
+        results = response.data["results"] if "results" in response.data else response.data
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["id"], self.lo1.id)
 
         # 2. Filter by Scope Department
         response = self.client.get(url, {"scope": "department"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Handle pagination
+        results = response.data["results"] if "results" in response.data else response.data
         # Should see both LO1 and LO2
-        self.assertEqual(len(response.data), 2)
-        ids = [lo["id"] for lo in response.data]
+        self.assertEqual(len(results), 2)
+        ids = [lo["id"] for lo in results]
         self.assertIn(self.lo1.id, ids)
         self.assertIn(self.lo2.id, ids)
 
@@ -81,7 +85,7 @@ class LOPOFlowTests(APITestCase):
         
         item = contributions[0]
         self.assertEqual(item["learning_outcome"]["id"], self.lo1.id)
-        self.assertEqual(item["weight"], "3.0") # Decimal
+        self.assertEqual(str(item["weight"]), "3.0")  # Convert Decimal to string
         self.assertEqual(item["status"], "Pending")
 
     def test_contribution_rejection(self):

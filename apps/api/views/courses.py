@@ -4,9 +4,12 @@ from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from django.db import transaction
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from apps.api.permissions import IsDepartmentHead, IsInstructor, IsStudent, IsCourseInstructor
 
 from apps.courses.models import CourseTemplate, CourseInstance, Assessment, LearningOutcome, AssessmentToLOContribution
+from apps.grades.calculators import AchievementCalculator
 from apps.api.serializers.courses import (
     # Course Template
     CourseTemplateWriteSerializer,
@@ -27,7 +30,11 @@ from apps.api.serializers.courses import (
     # Contributions
     AssessmentToLOContributionWriteSerializer,
     AssessmentToLOContributionListSerializer,
-    LOtoPOContributionWriteSerializer, # If needed in generic views or specifically imported
+    LOtoPOContributionWriteSerializer,
+    # Action Serializers
+    CourseLOAchievementSerializer,
+    StudentEnrollmentSerializer,
+    StudentUnenrollSerializer,
 )
 # Note: LOtoPOContributionViewSet is in core.py, but used serializers from courses.py which I updated.
 
@@ -126,7 +133,7 @@ class CourseInstanceViewSet(ModelViewSet):
         """
         if self.action == 'create':
             permission_classes = [IsDepartmentHead | IsAdminUser]
-        elif self.action in ['update', 'partial_update', 'destroy']:
+        elif self.action in ['update', 'partial_update', 'destroy', 'enroll_students', 'unenroll_student']:
             permission_classes = [(IsInstructor & IsCourseInstructor) | IsDepartmentHead | IsAdminUser]
         else:
             permission_classes = [IsAuthenticated]
@@ -139,10 +146,22 @@ class CourseInstanceViewSet(ModelViewSet):
             return CourseInstanceDetailSerializer
         return CourseInstanceListSerializer
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='instructor', description='Filter by instructor ID or "me"/"current_user"', required=False, type=str),
+            OpenApiParameter(name='is_active', description='Filter by active status (true/false)', required=False, type=bool),
+            OpenApiParameter(name='semester', description='Filter by semester (e.g., "Fall", "Spring")', required=False, type=str),
+            OpenApiParameter(name='year', description='Filter by year (e.g., 2024)', required=False, type=int),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         """
         Filter queryset based on user role to ensure they only see what they're allowed to.
         Supports ?instructor=me or ?instructor=current_user to filter by current user.
+        Supports ?is_active=true, ?semester=Fall, ?year=2024 filters.
         """
         queryset = super().get_queryset()
         user = self.request.user
@@ -157,10 +176,29 @@ class CourseInstanceViewSet(ModelViewSet):
             except (ValueError, TypeError):
                 pass  # Invalid ID, ignore filter
 
+        # Active status filter
+        is_active_param = self.request.query_params.get('is_active')
+        if is_active_param is not None:
+            is_active = is_active_param.lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(is_active=is_active)
+
+        # Semester and year filters
+        semester_param = self.request.query_params.get('semester')
+        if semester_param:
+            queryset = queryset.filter(semester__iexact=semester_param)
+        
+        year_param = self.request.query_params.get('year')
+        if year_param:
+            try:
+                queryset = queryset.filter(year=int(year_param))
+            except (ValueError, TypeError):
+                pass
+
         # Role-based visibility filtering
         if user.is_department_head() or user.is_staff or user.is_superuser:
             pass
         elif user.is_instructor():
+            # Instructors only see their own courses
             queryset = queryset.filter(instructor=user)
         elif user.is_student():
             queryset = queryset.filter(students=user)
@@ -179,6 +217,85 @@ class CourseInstanceViewSet(ModelViewSet):
         else:
             queryset = queryset.select_related('course_template__department', 'instructor')
         return queryset
+
+    @extend_schema(
+        responses={200: CourseLOAchievementSerializer(many=True)},
+        summary="Get LO achievement statistics",
+        description="Returns average/min/max scores per Learning Outcome for all students in this course.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['get'])
+    def lo_achievements(self, request, pk=None):
+        """
+        Return LO achievement statistics for this course instance.
+        Uses the AchievementCalculator to compute statistics.
+        """
+        course_instance = self.get_object()
+        stats = AchievementCalculator.get_course_lo_statistics(course_instance)
+        serializer = CourseLOAchievementSerializer(stats, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=StudentEnrollmentSerializer,
+        responses={200: {"type": "object", "properties": {"enrolled_count": {"type": "integer"}, "message": {"type": "string"}}}},
+        summary="Enroll students",
+        description="Bulk enroll students to this course. Atomic operation - all or nothing.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['post'])
+    def enroll_students(self, request, pk=None):
+        """
+        Bulk enroll students to this course.
+        All enrollments are atomic - if one fails, all fail.
+        """
+        course_instance = self.get_object()
+        serializer = StudentEnrollmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        with transaction.atomic():
+            student_ids = serializer.validated_data['student_ids']
+            students = User.objects.filter(id__in=student_ids, role="STUDENT")
+            course_instance.students.add(*students)
+        
+        return Response({
+            "enrolled_count": len(student_ids),
+            "message": f"Successfully enrolled {len(student_ids)} students."
+        })
+
+    @extend_schema(
+        request=StudentUnenrollSerializer,
+        responses={200: {"type": "object", "properties": {"message": {"type": "string"}}}},
+        summary="Unenroll student",
+        description="Remove a student from this course.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['post'])
+    def unenroll_student(self, request, pk=None):
+        """Remove a student from this course."""
+        course_instance = self.get_object()
+        serializer = StudentUnenrollSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        student_id = serializer.validated_data['student_id']
+        student = User.objects.get(id=student_id)
+        
+        if not course_instance.students.filter(id=student_id).exists():
+            return Response(
+                {"error": "Student is not enrolled in this course."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        course_instance.students.remove(student)
+        
+        return Response({
+            "message": f"Successfully unenrolled student {student_id}."
+        })
 
 
 class AssessmentViewSet(ModelViewSet):

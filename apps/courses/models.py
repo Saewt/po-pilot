@@ -72,6 +72,10 @@ class LearningOutcome(models.Model):
     def __str__(self):
         return f"{self.course_template.get_full_code()} - {self.code}"
 
+    def get_full_code(self):
+        """Full LO code: CSE-CS101-LO-1"""
+        return f"{self.course_template.get_full_code()}-{self.code}"
+
     def clean(self):
         if self.code:
             cleaned_code = self.code.strip().upper()

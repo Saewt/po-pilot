@@ -116,3 +116,101 @@ class StudentGradeReportSerializer(serializers.Serializer):
     total_weighted_score = serializers.DecimalField(max_digits=5, decimal_places=2)
     assessment_count = serializers.IntegerField()
     graded_count = serializers.IntegerField()
+
+
+class BulkGradeItemSerializer(serializers.Serializer):
+    """Single grade item for bulk operations."""
+    assessment_id = serializers.PrimaryKeyRelatedField(
+        queryset=Assessment.objects.all(),
+        help_text="ID of the assessment to grade"
+    )
+    student_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="STUDENT"),
+        help_text="ID of the student receiving the grade"
+    )
+    score = serializers.DecimalField(
+        max_digits=5, 
+        decimal_places=2,
+        help_text="Score value (0-100)"
+    )
+
+
+class BulkGradeCreateSerializer(serializers.Serializer):
+    """
+    Bulk grade creation with ownership validation.
+    All grades are created atomically - if one fails, all fail.
+    """
+    grades = BulkGradeItemSerializer(many=True, help_text="List of grades to create")
+    
+    def validate_grades(self, grades):
+        """Validate each grade item and check instructor ownership."""
+        user = self.context['request'].user
+        errors = []
+        
+        for idx, grade_data in enumerate(grades):
+            assessment = grade_data['assessment_id']
+            student = grade_data['student_id']
+            score = grade_data['score']
+            
+            # Security: Verify instructor owns the course
+            if not user.is_staff and assessment.course_instance.instructor != user:
+                errors.append(f"Grade {idx}: Assessment {assessment.id} does not belong to your course.")
+                continue
+            
+            # Validate score against max_score
+            if score > assessment.max_score:
+                errors.append(
+                    f"Grade {idx}: Score {score} exceeds maximum {assessment.max_score} for assessment {assessment.id}."
+                )
+            
+            # Validate student is enrolled in the course
+            if not assessment.course_instance.students.filter(id=student.id).exists():
+                errors.append(
+                    f"Grade {idx}: Student {student.id} is not enrolled in the course."
+                )
+        
+        if errors:
+            raise serializers.ValidationError(errors)
+        
+        return grades
+
+
+class BulkGradeUpdateSerializer(serializers.Serializer):
+    """
+    Bulk grade update with upsert behavior.
+    Updates existing grades or creates new ones atomically.
+    """
+    grades = BulkGradeItemSerializer(many=True, help_text="List of grades to update/create")
+    
+    def validate_grades(self, grades):
+        """Validate each grade item and check instructor ownership."""
+        user = self.context['request'].user
+        errors = []
+        
+        for idx, grade_data in enumerate(grades):
+            assessment = grade_data['assessment_id']
+            student = grade_data['student_id']
+            score = grade_data['score']
+            
+            # Security: Verify instructor owns the course
+            if not user.is_staff and assessment.course_instance.instructor != user:
+                errors.append(f"Grade {idx}: Assessment {assessment.id} does not belong to your course.")
+                continue
+            
+            # Validate score against max_score
+            if score > assessment.max_score:
+                errors.append(
+                    f"Grade {idx}: Score {score} exceeds maximum {assessment.max_score} for assessment {assessment.id}."
+                )
+            
+            # Validate student is enrolled in the course
+            if not assessment.course_instance.students.filter(id=student.id).exists():
+                errors.append(
+                    f"Grade {idx}: Student {student.id} is not enrolled in the course."
+                )
+        
+        if errors:
+            raise serializers.ValidationError(errors)
+        
+        return grades
+

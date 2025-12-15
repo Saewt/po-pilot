@@ -42,6 +42,9 @@ from .courses import (
     LOtoPOContributionWriteSerializer,
     LOtoPOContributionListSerializer,
     LOtoPOContributionDetailSerializer,
+    CourseLOAchievementSerializer,
+    StudentEnrollmentSerializer,
+    StudentUnenrollSerializer,
 )
 
 # Grade serializers
@@ -49,6 +52,9 @@ from .grades import (
     AssessmentGradeSerializer,
     AssessmentGradeDetailSerializer,
     StudentGradeReportSerializer,
+    BulkGradeItemSerializer,
+    BulkGradeCreateSerializer,
+    BulkGradeUpdateSerializer,
 )
 
 # Achievement serializers
@@ -98,6 +104,13 @@ __all__ = [
     "AssessmentGradeSerializer",
     "AssessmentGradeDetailSerializer",
     "StudentGradeReportSerializer",
+    "BulkGradeItemSerializer",
+    "BulkGradeCreateSerializer",
+    "BulkGradeUpdateSerializer",
+    # Course Actions
+    "CourseLOAchievementSerializer",
+    "StudentEnrollmentSerializer",
+    "StudentUnenrollSerializer",
     # Achievements
     "POAchievementSerializer",
     "CourseAchievementSerializer",

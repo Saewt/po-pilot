@@ -142,7 +142,7 @@ class LOToPOContributionViewSet(ModelViewSet):
         Approve: Dept Head only.
         Read: All authenticated.
         """
-        if self.action == 'approve':
+        if self.action in ['approve', 'reject']:
             permission_classes = [IsDepartmentHead | IsAdminUser]
         elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             permission_classes = [IsInstructor | IsDepartmentHead | IsAdminUser]

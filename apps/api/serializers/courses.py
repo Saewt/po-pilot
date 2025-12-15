@@ -260,8 +260,8 @@ class LOtoPOContributionWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LOtoPOContribution
-        fields = ["learning_outcome_id", "program_outcome_id", "weight", "is_approved"]
-        read_only_fields = ["is_approved"]
+        fields = ["id", "learning_outcome_id", "program_outcome_id", "weight", "is_approved"]
+        read_only_fields = ["id", "is_approved"]
 
 
 class LOtoPOContributionListSerializer(serializers.ModelSerializer):
@@ -312,3 +312,65 @@ class AssessmentToLOContributionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssessmentToLOContribution
         fields = ["id", "learning_outcome", "weight"]
+
+
+
+
+class CourseLOAchievementSerializer(serializers.Serializer):
+    """Learning Outcome achievement statistics for a course instance."""
+    learning_outcome = LearningOutcomeListSerializer(read_only=True)
+    average = serializers.DecimalField(
+        max_digits=5, decimal_places=2, 
+        help_text="Average achievement score across all students"
+    )
+    min = serializers.DecimalField(
+        max_digits=5, decimal_places=2,
+        help_text="Minimum achievement score"
+    )
+    max = serializers.DecimalField(
+        max_digits=5, decimal_places=2,
+        help_text="Maximum achievement score"
+    )
+    student_count = serializers.IntegerField(
+        help_text="Number of students with grades for this LO"
+    )
+
+
+class StudentEnrollmentSerializer(serializers.Serializer):
+    """Serializer for bulk student enrollment operations."""
+    student_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="List of student IDs to enroll"
+    )
+    
+    def validate_student_ids(self, student_ids):
+        """Validate that all IDs are valid students."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        students = User.objects.filter(id__in=student_ids, role="STUDENT")
+        found_ids = set(students.values_list('id', flat=True))
+        missing_ids = set(student_ids) - found_ids
+        
+        if missing_ids:
+            raise serializers.ValidationError(
+                f"Invalid student IDs: {list(missing_ids)}"
+            )
+        
+        return student_ids
+
+
+class StudentUnenrollSerializer(serializers.Serializer):
+    """Serializer for single student unenrollment."""
+    student_id = serializers.IntegerField(help_text="ID of student to unenroll")
+    
+    def validate_student_id(self, student_id):
+        """Validate that the ID is a valid student."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        if not User.objects.filter(id=student_id, role="STUDENT").exists():
+            raise serializers.ValidationError(f"Invalid student ID: {student_id}")
+        
+        return student_id
+
