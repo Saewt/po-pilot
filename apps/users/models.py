@@ -100,5 +100,5 @@ class User(AbstractUser):
     def get_po_scores_for_course(self, course_instance):
         from apps.grades.calculators import AchievementCalculator
         if self.is_student():
-            return AchievementCalculator.calculate_all_po_achievements_for_course(self, course_instance)
+            return AchievementCalculator.calculate_all_po_achievement_for_course(self, course_instance)
         return []

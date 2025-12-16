@@ -19,10 +19,28 @@ class CourseTemplate(models.Model):
     class Meta:
         unique_together = ("department", "code")
         ordering = ["department", "code"]
+
     def __str__(self):
         return f"{self.department.code} - {self.code}: {self.name}"
+
     def get_full_code(self):
         return f"{self.department.code} - {self.code}"
+
+    def clean(self):
+        """Normalize code and name fields before saving."""
+        if self.code:
+            self.code = self.code.strip().upper()
+        if not self.code:
+            raise ValidationError({"code": "Course code cannot be empty."})
+        
+        if self.name:
+            self.name = self.name.strip()
+        if not self.name:
+            raise ValidationError({"name": "Course name cannot be empty."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
     
 class CourseInstance(models.Model):
     course_template = models.ForeignKey(CourseTemplate, on_delete=models.CASCADE, related_name="instances")
@@ -134,7 +152,15 @@ class Assessment(models.Model):
     def clean(self):
         """Validate that total weights don't exceed 100%."""
         from django.db.models import Sum
-        if self.weight and self.course_instance:
+        has_parent = False
+        try:
+            if self.course_instance and self.course_instance.pk:
+                has_parent = True
+        except (AttributeError, ValueError, models.ObjectDoesNotExist):
+            pass  
+
+        if self.weight and has_parent:
+            
             existing_total = self.course_instance.assessments.exclude(
                 pk=self.pk
             ).aggregate(total=Sum('weight'))['total'] or 0
@@ -146,7 +172,10 @@ class Assessment(models.Model):
                 })
 
     def __str__(self):
+        try:
             return f"{self.course_instance.get_full_code()} - {self.name}"
+        except (AttributeError, models.ObjectDoesNotExist):
+            return f"Unassigned Assessment - {self.name}"
 
 
 class AssessmentToLOContribution(models.Model):

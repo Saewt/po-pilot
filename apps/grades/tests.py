@@ -102,7 +102,7 @@ class AchievementCalculatorTests(TestCase):
         AssessmentToLOContribution.objects.create(
             assessment=self.midterm,
             learning_outcome=self.lo1,
-            weight=5.0,  # High contribution
+            weight=5.0,  
         )
         AssessmentToLOContribution.objects.create(
             assessment=self.final,
@@ -374,7 +374,7 @@ class AchievementCalculatorTests(TestCase):
             )
             pos.append(po)
         
-        target_po = pos[4] # PO-5
+        target_po = pos[4] 
 
         courses = []
         for i in range(1, 6):
@@ -459,3 +459,130 @@ class AchievementCalculatorTests(TestCase):
         self.assertEqual(po1_result['course_count'], 3)
         self.assertEqual(po1_result['overall_achievement'], 86.00)
 
+
+class UserPOScoreHelperTests(TestCase):
+    """Test User model helper methods for PO score calculations."""
+
+    def setUp(self):
+        self.dept = Department.objects.create(name="Computer Science", code="CSE")
+        self.po1 = ProgramOutcome.objects.create(
+            department=self.dept, code="PO-1", description="Critical Thinking"
+        )
+
+        self.student = User.objects.create_user(
+            email="student@example.com",
+            password="password",
+            role=User.Role.STUDENT,
+            department=self.dept,
+        )
+        self.instructor = User.objects.create_user(
+            email="instructor@example.com",
+            password="password",
+            role=User.Role.INSTRUCTOR,
+            department=self.dept,
+        )
+        self.head = User.objects.create_user(
+            email="head@example.com",
+            password="password",
+            role=User.Role.DEPARTMENT_HEAD,
+            department=self.dept,
+        )
+
+        self.course_template = CourseTemplate.objects.create(
+            department=self.dept,
+            code="101",
+            name="Intro to CS",
+            credit=3,
+        )
+        self.lo1 = LearningOutcome.objects.create(
+            course_template=self.course_template,
+            code="LO-1",
+            description="Understand basic algorithms",
+        )
+
+        self.lopo1 = LOtoPOContribution.objects.create(
+            learning_outcome=self.lo1,
+            program_outcome=self.po1,
+            weight=4.0,
+        )
+        self.lopo1.approve(self.head)
+
+        self.course_instance = CourseInstance.objects.create(
+            course_template=self.course_template,
+            semester="Fall",
+            year=2024,
+            instructor=self.instructor,
+        )
+        self.course_instance.students.add(self.student)
+
+        self.midterm = Assessment.objects.create(
+            course_instance=self.course_instance,
+            name="Midterm",
+            assessment_type=Assessment.AssessmentType.MIDTERM,
+            max_score=100,
+            weight=100,
+        )
+
+        AssessmentToLOContribution.objects.create(
+            assessment=self.midterm,
+            learning_outcome=self.lo1,
+            weight=5.0,
+        )
+
+    def test_get_po_scores_for_course_returns_results(self):
+        """Test that get_po_scores_for_course calls calculator correctly."""
+        AssessmentGrade.objects.create(
+            student=self.student,
+            assessment=self.midterm,
+            score=85,
+            entered_by=self.instructor,
+        )
+
+        results = self.student.get_po_scores_for_course(self.course_instance)
+        
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['program_outcome'], self.po1)
+        self.assertEqual(results[0]['achievement'], 85.00)
+
+    def test_get_po_scores_for_course_non_student_returns_empty(self):
+        """Test that non-students get empty list."""
+        results = self.instructor.get_po_scores_for_course(self.course_instance)
+        self.assertEqual(results, [])
+        
+        results = self.head.get_po_scores_for_course(self.course_instance)
+        self.assertEqual(results, [])
+
+    def test_get_overall_po_scores_returns_results(self):
+        """Test that get_overall_po_scores calls calculator correctly."""
+        AssessmentGrade.objects.create(
+            student=self.student,
+            assessment=self.midterm,
+            score=90,
+            entered_by=self.instructor,
+        )
+
+        results = self.student.get_overall_po_scores()
+        
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['program_outcome'], self.po1)
+        self.assertEqual(results[0]['overall_achievement'], 90.00)
+
+    def test_get_overall_po_scores_non_student_returns_empty(self):
+        """Test that non-students get empty list."""
+        results = self.instructor.get_overall_po_scores()
+        self.assertEqual(results, [])
+
+    def test_get_overall_po_scores_no_department_returns_empty(self):
+        """Test that student without department gets empty list."""
+        student_no_dept = User.objects.create_user(
+            email="nodept@example.com",
+            password="password",
+            role=User.Role.STUDENT,
+        )
+        results = student_no_dept.get_overall_po_scores()
+        self.assertEqual(results, [])
+
+    def test_get_po_scores_for_course_no_grades_returns_empty(self):
+        """Test that student with no grades gets empty list."""
+        results = self.student.get_po_scores_for_course(self.course_instance)
+        self.assertEqual(results, [])
