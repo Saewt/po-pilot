@@ -1,0 +1,3846 @@
+openapi: 3.0.3
+info:
+  title: PO Pilot API
+  version: 1.0.2
+  description: API documentation for the PO Pilot project.
+paths:
+  /api/assessment-lo-contributions/:
+    get:
+      operationId: assessment_lo_contributions_list
+      description: |-
+        ViewSet for managing Assessment to LO contributions.
+        Allows instructors to connect exam/quiz questions to Learning Outcomes.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - assessment-lo-contributions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssessmentToLOContributionListList'
+          description: ''
+    post:
+      operationId: assessment_lo_contributions_create
+      description: |-
+        ViewSet for managing Assessment to LO contributions.
+        Allows instructors to connect exam/quiz questions to Learning Outcomes.
+      tags:
+      - assessment-lo-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+          description: ''
+  /api/assessment-lo-contributions/{id}/:
+    get:
+      operationId: assessment_lo_contributions_retrieve
+      description: |-
+        ViewSet for managing Assessment to LO contributions.
+        Allows instructors to connect exam/quiz questions to Learning Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment to Learning
+          Outcome Contribution.
+        required: true
+      tags:
+      - assessment-lo-contributions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentToLOContributionList'
+          description: ''
+    put:
+      operationId: assessment_lo_contributions_update
+      description: |-
+        ViewSet for managing Assessment to LO contributions.
+        Allows instructors to connect exam/quiz questions to Learning Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment to Learning
+          Outcome Contribution.
+        required: true
+      tags:
+      - assessment-lo-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+          description: ''
+    patch:
+      operationId: assessment_lo_contributions_partial_update
+      description: |-
+        ViewSet for managing Assessment to LO contributions.
+        Allows instructors to connect exam/quiz questions to Learning Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment to Learning
+          Outcome Contribution.
+        required: true
+      tags:
+      - assessment-lo-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentToLOContributionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentToLOContributionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentToLOContributionWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentToLOContributionWrite'
+          description: ''
+    delete:
+      operationId: assessment_lo_contributions_destroy
+      description: |-
+        ViewSet for managing Assessment to LO contributions.
+        Allows instructors to connect exam/quiz questions to Learning Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment to Learning
+          Outcome Contribution.
+        required: true
+      tags:
+      - assessment-lo-contributions
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/assessments/:
+    get:
+      operationId: assessments_list
+      description: ViewSet for managing course assessments (Midterms, Finals, etc.).
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - assessments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssessmentListList'
+          description: ''
+    post:
+      operationId: assessments_create
+      description: ViewSet for managing course assessments (Midterms, Finals, etc.).
+      tags:
+      - assessments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssessmentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssessmentWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentWrite'
+          description: ''
+  /api/assessments/{id}/:
+    get:
+      operationId: assessments_retrieve
+      description: ViewSet for managing course assessments (Midterms, Finals, etc.).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment.
+        required: true
+      tags:
+      - assessments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentDetail'
+          description: ''
+    put:
+      operationId: assessments_update
+      description: ViewSet for managing course assessments (Midterms, Finals, etc.).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment.
+        required: true
+      tags:
+      - assessments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssessmentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssessmentWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentWrite'
+          description: ''
+    patch:
+      operationId: assessments_partial_update
+      description: ViewSet for managing course assessments (Midterms, Finals, etc.).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment.
+        required: true
+      tags:
+      - assessments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentWrite'
+          description: ''
+    delete:
+      operationId: assessments_destroy
+      description: ViewSet for managing course assessments (Midterms, Finals, etc.).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment.
+        required: true
+      tags:
+      - assessments
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Takes a set of user credentials and returns an access and refresh
+        JSON web token pair to prove the authentication of those credentials.
+      summary: Login (Obtain JWT Pair)
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+        '401':
+          description: Unauthorized
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: Blacklists the refresh token.
+      summary: Logout (Blacklist Token)
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Logout'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '205':
+          description: Successfully logged out
+        '400':
+          description: Bad Request
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: Takes a refresh type JSON web token and returns an access type
+        JSON web token if the refresh token is valid.
+      summary: Refresh Access Token
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomTokenRefresh'
+          description: ''
+        '401':
+          description: Unauthorized
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: Register a new student user. Requires a valid .edu email and student
+        ID.
+      summary: Register a new student
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+        '400':
+          description: Bad Request
+  /api/course-instances/:
+    get:
+      operationId: course_instances_list
+      parameters:
+      - in: query
+        name: instructor
+        schema:
+          type: string
+        description: Filter by instructor ID or "me"/"current_user"
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+        description: Filter by active status (true/false)
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: semester
+        schema:
+          type: string
+        description: Filter by semester (e.g., "Fall", "Spring")
+      - in: query
+        name: year
+        schema:
+          type: integer
+        description: Filter by year (e.g., 2024)
+      tags:
+      - course-instances
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourseInstanceListList'
+          description: ''
+    post:
+      operationId: course_instances_create
+      tags:
+      - course-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseInstanceWrite'
+          description: ''
+  /api/course-instances/{id}/:
+    get:
+      operationId: course_instances_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseInstanceDetail'
+          description: ''
+    put:
+      operationId: course_instances_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseInstanceWrite'
+          description: ''
+    patch:
+      operationId: course_instances_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseInstanceWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseInstanceWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseInstanceWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseInstanceWrite'
+          description: ''
+    delete:
+      operationId: course_instances_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/course-instances/{id}/enroll_students/:
+    post:
+      operationId: course_instances_enroll_students_create
+      description: Bulk enroll students to this course. Atomic operation - all or
+        nothing.
+      summary: Enroll students
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentEnrollment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StudentEnrollment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StudentEnrollment'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enrolled_count:
+                    type: integer
+                  message:
+                    type: string
+          description: ''
+  /api/course-instances/{id}/lo_achievements/:
+    get:
+      operationId: course_instances_lo_achievements_list
+      description: Returns average/min/max scores per Learning Outcome for all students
+        in this course.
+      summary: Get LO achievement statistics
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - course-instances
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourseLOAchievementList'
+          description: ''
+  /api/course-instances/{id}/unenroll_student/:
+    post:
+      operationId: course_instances_unenroll_student_create
+      description: Remove a student from this course.
+      summary: Unenroll student
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentUnenroll'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StudentUnenroll'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StudentUnenroll'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: ''
+  /api/course-templates/:
+    get:
+      operationId: course_templates_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - course-templates
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCourseTemplateListList'
+          description: ''
+    post:
+      operationId: course_templates_create
+      tags:
+      - course-templates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseTemplateWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseTemplateWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseTemplateWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseTemplateWrite'
+          description: ''
+  /api/course-templates/{id}/:
+    get:
+      operationId: course_templates_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course template.
+        required: true
+      tags:
+      - course-templates
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseTemplateDetail'
+          description: ''
+    put:
+      operationId: course_templates_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course template.
+        required: true
+      tags:
+      - course-templates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseTemplateWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseTemplateWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseTemplateWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseTemplateWrite'
+          description: ''
+    patch:
+      operationId: course_templates_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course template.
+        required: true
+      tags:
+      - course-templates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseTemplateWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseTemplateWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCourseTemplateWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseTemplateWrite'
+          description: ''
+    delete:
+      operationId: course_templates_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course template.
+        required: true
+      tags:
+      - course-templates
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/departments/:
+    get:
+      operationId: departments_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - departments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDepartmentListList'
+          description: ''
+    post:
+      operationId: departments_create
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DepartmentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DepartmentWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentWrite'
+          description: ''
+  /api/departments/{id}/:
+    get:
+      operationId: departments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Department.
+        required: true
+      tags:
+      - departments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentDetail'
+          description: ''
+    put:
+      operationId: departments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Department.
+        required: true
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DepartmentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DepartmentWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentWrite'
+          description: ''
+    patch:
+      operationId: departments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Department.
+        required: true
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentWrite'
+          description: ''
+    delete:
+      operationId: departments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Department.
+        required: true
+      tags:
+      - departments
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/grades/:
+    get:
+      operationId: grades_list
+      description: ViewSet for managing student grades.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - grades
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssessmentGradeList'
+          description: ''
+    post:
+      operationId: grades_create
+      description: ViewSet for managing student grades.
+      tags:
+      - grades
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentGrade'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssessmentGrade'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssessmentGrade'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentGrade'
+          description: ''
+  /api/grades/{id}/:
+    get:
+      operationId: grades_retrieve
+      description: ViewSet for managing student grades.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment Grade.
+        required: true
+      tags:
+      - grades
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentGradeDetail'
+          description: ''
+    put:
+      operationId: grades_update
+      description: ViewSet for managing student grades.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment Grade.
+        required: true
+      tags:
+      - grades
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentGrade'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssessmentGrade'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssessmentGrade'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentGrade'
+          description: ''
+    patch:
+      operationId: grades_partial_update
+      description: ViewSet for managing student grades.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment Grade.
+        required: true
+      tags:
+      - grades
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentGrade'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentGrade'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessmentGrade'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentGrade'
+          description: ''
+    delete:
+      operationId: grades_destroy
+      description: ViewSet for managing student grades.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Assessment Grade.
+        required: true
+      tags:
+      - grades
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/grades/bulk_create/:
+    post:
+      operationId: grades_bulk_create_create
+      description: Create multiple grades atomically. If any grade fails validation,
+        the entire operation rolls back.
+      summary: Bulk create grades
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - grades
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkGradeCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BulkGradeCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BulkGradeCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssessmentGradeList'
+          description: ''
+  /api/grades/bulk_update/:
+    post:
+      operationId: grades_bulk_update_create
+      description: Update or create multiple grades atomically. Uses upsert behavior
+        - creates if not exists, updates if exists.
+      summary: Bulk update/upsert grades
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - grades
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkGradeUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BulkGradeUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BulkGradeUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssessmentGradeList'
+          description: ''
+  /api/learning-outcomes/:
+    get:
+      operationId: learning_outcomes_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - learning-outcomes
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLearningOutcomeListList'
+          description: ''
+    post:
+      operationId: learning_outcomes_create
+      tags:
+      - learning-outcomes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearningOutcomeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LearningOutcomeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LearningOutcomeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearningOutcomeWrite'
+          description: ''
+  /api/learning-outcomes/{id}/:
+    get:
+      operationId: learning_outcomes_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome.
+        required: true
+      tags:
+      - learning-outcomes
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearningOutcomeDetail'
+          description: ''
+    put:
+      operationId: learning_outcomes_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome.
+        required: true
+      tags:
+      - learning-outcomes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearningOutcomeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LearningOutcomeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LearningOutcomeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearningOutcomeWrite'
+          description: ''
+    patch:
+      operationId: learning_outcomes_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome.
+        required: true
+      tags:
+      - learning-outcomes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLearningOutcomeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLearningOutcomeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLearningOutcomeWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearningOutcomeWrite'
+          description: ''
+    delete:
+      operationId: learning_outcomes_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome.
+        required: true
+      tags:
+      - learning-outcomes
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/lo-po-contributions/:
+    get:
+      operationId: lo_po_contributions_list
+      description: ViewSet for LO to PO contributions and approvals.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - lo-po-contributions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLOtoPOContributionListList'
+          description: ''
+    post:
+      operationId: lo_po_contributions_create
+      description: ViewSet for LO to PO contributions and approvals.
+      tags:
+      - lo-po-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LOtoPOContributionWrite'
+          description: ''
+  /api/lo-po-contributions/{id}/:
+    get:
+      operationId: lo_po_contributions_retrieve
+      description: ViewSet for LO to PO contributions and approvals.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome to Program
+          Outcome Contribution.
+        required: true
+      tags:
+      - lo-po-contributions
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LOtoPOContributionDetail'
+          description: ''
+    put:
+      operationId: lo_po_contributions_update
+      description: ViewSet for LO to PO contributions and approvals.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome to Program
+          Outcome Contribution.
+        required: true
+      tags:
+      - lo-po-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LOtoPOContributionWrite'
+          description: ''
+    patch:
+      operationId: lo_po_contributions_partial_update
+      description: ViewSet for LO to PO contributions and approvals.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome to Program
+          Outcome Contribution.
+        required: true
+      tags:
+      - lo-po-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLOtoPOContributionWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLOtoPOContributionWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLOtoPOContributionWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LOtoPOContributionWrite'
+          description: ''
+    delete:
+      operationId: lo_po_contributions_destroy
+      description: ViewSet for LO to PO contributions and approvals.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome to Program
+          Outcome Contribution.
+        required: true
+      tags:
+      - lo-po-contributions
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/lo-po-contributions/{id}/approve/:
+    post:
+      operationId: lo_po_contributions_approve_create
+      description: Approve the contribution (Dept Head only).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome to Program
+          Outcome Contribution.
+        required: true
+      tags:
+      - lo-po-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionDetail'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LOtoPOContributionDetail'
+          description: ''
+  /api/lo-po-contributions/{id}/reject/:
+    post:
+      operationId: lo_po_contributions_reject_create
+      description: |-
+        Reject the contribution (Dept Head only).
+        Sets is_approved=False and approved_by=User.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Learning Outcome to Program
+          Outcome Contribution.
+        required: true
+      tags:
+      - lo-po-contributions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionList'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionList'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LOtoPOContributionList'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LOtoPOContributionList'
+          description: ''
+  /api/me/:
+    get:
+      operationId: me_retrieve
+      description: Retrieve the currently authenticated user's profile information
+        including department and active courses.
+      summary: Get Current User Information
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMe'
+          description: ''
+  /api/program-outcomes/:
+    get:
+      operationId: program_outcomes_list
+      description: ViewSet for Program Outcomes.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - program-outcomes
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProgramOutcomeListList'
+          description: ''
+    post:
+      operationId: program_outcomes_create
+      description: ViewSet for Program Outcomes.
+      tags:
+      - program-outcomes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgramOutcomeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProgramOutcomeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProgramOutcomeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramOutcomeWrite'
+          description: ''
+  /api/program-outcomes/{id}/:
+    get:
+      operationId: program_outcomes_retrieve
+      description: ViewSet for Program Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Program Outcome.
+        required: true
+      tags:
+      - program-outcomes
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramOutcomeDetail'
+          description: ''
+    put:
+      operationId: program_outcomes_update
+      description: ViewSet for Program Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Program Outcome.
+        required: true
+      tags:
+      - program-outcomes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgramOutcomeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProgramOutcomeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProgramOutcomeWrite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramOutcomeWrite'
+          description: ''
+    patch:
+      operationId: program_outcomes_partial_update
+      description: ViewSet for Program Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Program Outcome.
+        required: true
+      tags:
+      - program-outcomes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProgramOutcomeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProgramOutcomeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProgramOutcomeWrite'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramOutcomeWrite'
+          description: ''
+    delete:
+      operationId: program_outcomes_destroy
+      description: ViewSet for Program Outcomes.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Program Outcome.
+        required: true
+      tags:
+      - program-outcomes
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/program-outcomes/{id}/lo_summary/:
+    get:
+      operationId: program_outcomes_lo_summary_retrieve
+      description: Return a summary of all LOs contributing to this PO.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Program Outcome.
+        required: true
+      tags:
+      - program-outcomes
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramOutcomeList'
+          description: ''
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/users/:
+    get:
+      operationId: users_list
+      description: |-
+        ViewSet for listing and managing users.
+
+        Department Heads can list and filter users in their department.
+        Supports filtering by role and department query parameters.
+      parameters:
+      - in: query
+        name: department
+        schema:
+          type: integer
+        description: Filter by department ID
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: role
+        schema:
+          type: string
+        description: Filter by user role (INSTRUCTOR, STUDENT, DEPARTMENT_HEAD)
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+    post:
+      operationId: users_create
+      description: |-
+        ViewSet for listing and managing users.
+
+        Department Heads can list and filter users in their department.
+        Supports filtering by role and department query parameters.
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/users/{id}/:
+    get:
+      operationId: users_retrieve
+      description: |-
+        ViewSet for listing and managing users.
+
+        Department Heads can list and filter users in their department.
+        Supports filtering by role and department query parameters.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: users_update
+      description: |-
+        ViewSet for listing and managing users.
+
+        Department Heads can list and filter users in their department.
+        Supports filtering by role and department query parameters.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: users_partial_update
+      description: |-
+        ViewSet for listing and managing users.
+
+        Department Heads can list and filter users in their department.
+        Supports filtering by role and department query parameters.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: users_destroy
+      description: |-
+        ViewSet for listing and managing users.
+
+        Department Heads can list and filter users in their department.
+        Supports filtering by role and department query parameters.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    AssessmentDetail:
+      type: object
+      description: Response detail for assessment.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        course_instance:
+          allOf:
+          - $ref: '#/components/schemas/CourseInstanceList'
+          readOnly: true
+        name:
+          type: string
+          description: 'Ex: Midterm 1, Final Exam, Project 1'
+          maxLength: 50
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentTypeEnum'
+        max_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Contribution weight to final grade (%)
+          description: 'Weight of this assessment towards the final course grade ex:
+            20 for 20%'
+        lo_contributions:
+          type: string
+          readOnly: true
+      required:
+      - assessment_type
+      - course_instance
+      - id
+      - lo_contributions
+      - name
+      - weight
+    AssessmentGrade:
+      type: object
+      description: Standard assessment grade serializer.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        student_id:
+          type: integer
+          writeOnly: true
+        assessment:
+          allOf:
+          - $ref: '#/components/schemas/AssessmentList'
+          readOnly: true
+        assessment_id:
+          type: integer
+          writeOnly: true
+        score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        entered_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - assessment
+      - assessment_id
+      - created_at
+      - entered_by
+      - id
+      - score
+      - student
+      - student_id
+      - updated_at
+    AssessmentGradeDetail:
+      type: object
+      description: Detailed assessment grade serializer with LO/PO contribution calculations.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          type: integer
+        student_name:
+          type: string
+          readOnly: true
+        assessment:
+          allOf:
+          - $ref: '#/components/schemas/AssessmentList'
+          readOnly: true
+        assessment_id:
+          type: integer
+          writeOnly: true
+        score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        percentage:
+          type: string
+          readOnly: true
+        weighted_score:
+          type: string
+          readOnly: true
+        entered_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        entered_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - assessment
+      - assessment_id
+      - created_at
+      - entered_by
+      - entered_by_name
+      - id
+      - percentage
+      - score
+      - student
+      - student_name
+      - updated_at
+      - weighted_score
+    AssessmentList:
+      type: object
+      description: Response summary for assessments.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: 'Ex: Midterm 1, Final Exam, Project 1'
+          maxLength: 50
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentTypeEnum'
+        max_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Contribution weight to final grade (%)
+          description: 'Weight of this assessment towards the final course grade ex:
+            20 for 20%'
+      required:
+      - assessment_type
+      - id
+      - name
+      - weight
+    AssessmentToLOContributionList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        learning_outcome:
+          allOf:
+          - $ref: '#/components/schemas/LearningOutcomeList'
+          readOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
+      required:
+      - id
+      - learning_outcome
+      - weight
+    AssessmentToLOContributionWrite:
+      type: object
+      properties:
+        assessment_id:
+          type: integer
+          writeOnly: true
+        learning_outcome_id:
+          type: integer
+          writeOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
+      required:
+      - assessment_id
+      - learning_outcome_id
+      - weight
+    AssessmentTypeEnum:
+      enum:
+      - MIDTERM
+      - FINAL
+      - PROJECT
+      - HOMEWORK
+      - QUIZ
+      - LAB
+      type: string
+      description: |-
+        * `MIDTERM` - Midterm Exam
+        * `FINAL` - Final Exam
+        * `PROJECT` - Project
+        * `HOMEWORK` - Homework
+        * `QUIZ` - Quiz
+        * `LAB` - Lab
+    AssessmentWrite:
+      type: object
+      description: Request schema for creating/updating assessments.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        course_instance_id:
+          type: integer
+          writeOnly: true
+        name:
+          type: string
+          description: 'Ex: Midterm 1, Final Exam, Project 1'
+          maxLength: 50
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentTypeEnum'
+        max_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Contribution weight to final grade (%)
+          description: 'Weight of this assessment towards the final course grade ex:
+            20 for 20%'
+      required:
+      - assessment_type
+      - course_instance_id
+      - id
+      - name
+      - weight
+    BulkGradeCreate:
+      type: object
+      description: |-
+        Bulk grade creation with ownership validation.
+        All grades are created atomically - if one fails, all fail.
+      properties:
+        grades:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkGradeItem'
+          description: List of grades to create
+      required:
+      - grades
+    BulkGradeItem:
+      type: object
+      description: Single grade item for bulk operations.
+      properties:
+        assessment_id:
+          type: integer
+          description: ID of the assessment to grade
+        student_id:
+          type: integer
+          description: ID of the student receiving the grade
+        score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Score value (0-100)
+      required:
+      - assessment_id
+      - score
+      - student_id
+    BulkGradeUpdate:
+      type: object
+      description: |-
+        Bulk grade update with upsert behavior.
+        Updates existing grades or creates new ones atomically.
+      properties:
+        grades:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkGradeItem'
+          description: List of grades to update/create
+      required:
+      - grades
+    CourseInstanceDetail:
+      type: object
+      description: Response detail for course instance.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        semester:
+          type: string
+          description: 'Ex: Fall 2024'
+          maxLength: 20
+        year:
+          type: integer
+          description: 'Ex: 2024'
+        course_template:
+          allOf:
+          - $ref: '#/components/schemas/CourseTemplateList'
+          readOnly: true
+        instructor:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        students_count:
+          type: integer
+          readOnly: true
+        assessments_summary:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+      required:
+      - assessments_summary
+      - course_template
+      - full_code
+      - id
+      - instructor
+      - semester
+      - students_count
+      - year
+    CourseInstanceList:
+      type: object
+      description: Response summary for course instances.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        semester:
+          type: string
+          description: 'Ex: Fall 2024'
+          maxLength: 20
+        year:
+          type: integer
+          description: 'Ex: 2024'
+        instructor:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+      required:
+      - full_code
+      - id
+      - instructor
+      - semester
+      - year
+    CourseInstanceWrite:
+      type: object
+      description: Request schema for creating/updating course instances.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        course_template_id:
+          type: integer
+          writeOnly: true
+        semester:
+          type: string
+          description: 'Ex: Fall 2024'
+          maxLength: 20
+        year:
+          type: integer
+          description: 'Ex: 2024'
+        instructor_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        is_active:
+          type: boolean
+        students:
+          type: array
+          items:
+            type: integer
+      required:
+      - course_template_id
+      - id
+      - semester
+      - students
+      - year
+    CourseLOAchievement:
+      type: object
+      description: Learning Outcome achievement statistics for a course instance.
+      properties:
+        learning_outcome:
+          allOf:
+          - $ref: '#/components/schemas/LearningOutcomeList'
+          readOnly: true
+        average:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Average achievement score across all students
+        min:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Minimum achievement score
+        max:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Maximum achievement score
+        student_count:
+          type: integer
+          description: Number of students with grades for this LO
+      required:
+      - average
+      - learning_outcome
+      - max
+      - min
+      - student_count
+    CourseTemplateDetail:
+      type: object
+      description: Response detail for course template.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentSimple'
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        code:
+          type: string
+          maxLength: 10
+        name:
+          type: string
+          maxLength: 100
+        credit:
+          type: integer
+        description:
+          type: string
+          nullable: true
+        learning_outcomes_count:
+          type: string
+          readOnly: true
+        instances_summary:
+          type: string
+          readOnly: true
+      required:
+      - code
+      - credit
+      - department
+      - full_code
+      - id
+      - instances_summary
+      - learning_outcomes_count
+      - name
+    CourseTemplateList:
+      type: object
+      description: Response summary for course templates.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentSimple'
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        credit:
+          type: integer
+      required:
+      - credit
+      - department
+      - full_code
+      - id
+      - name
+    CourseTemplateWrite:
+      type: object
+      description: Request schema for creating/updating course templates.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        department_id:
+          type: integer
+          writeOnly: true
+        code:
+          type: string
+          maxLength: 10
+        name:
+          type: string
+          maxLength: 100
+        credit:
+          type: integer
+        description:
+          type: string
+          nullable: true
+      required:
+      - code
+      - credit
+      - department_id
+      - id
+      - name
+    CustomTokenRefresh:
+      type: object
+      description: Custom Refresh Serializer for documentation.
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    DepartmentDetail:
+      type: object
+      description: Response detail for single department.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Department Name
+          maxLength: 100
+        code:
+          type: string
+          title: Department Code
+          maxLength: 10
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        members_count:
+          type: string
+          readOnly: true
+        program_outcomes_count:
+          type: string
+          readOnly: true
+      required:
+      - code
+      - created_at
+      - id
+      - members_count
+      - name
+      - program_outcomes_count
+      - updated_at
+    DepartmentList:
+      type: object
+      description: Response summary for department lists.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Department Name
+          maxLength: 100
+        code:
+          type: string
+          title: Department Code
+          maxLength: 10
+        member_count:
+          type: integer
+          readOnly: true
+      required:
+      - code
+      - id
+      - member_count
+      - name
+    DepartmentSimple:
+      type: object
+      description: Simple nested serializer for other resources.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Department Name
+          maxLength: 100
+        code:
+          type: string
+          title: Department Code
+          maxLength: 10
+      required:
+      - code
+      - id
+      - name
+    DepartmentWrite:
+      type: object
+      description: Request schema for creating/updating departments.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Department Name
+          maxLength: 100
+        code:
+          type: string
+          title: Department Code
+          maxLength: 10
+        is_active:
+          type: boolean
+      required:
+      - code
+      - id
+      - name
+    LOtoPOContributionDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        learning_outcome:
+          allOf:
+          - $ref: '#/components/schemas/LearningOutcomeList'
+          readOnly: true
+        program_outcome:
+          allOf:
+          - $ref: '#/components/schemas/ProgramOutcomeList'
+          readOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
+        is_approved:
+          type: boolean
+        approved_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        approved_by_name:
+          type: string
+          readOnly: true
+        approved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - approved_at
+      - approved_by
+      - approved_by_name
+      - created_at
+      - id
+      - learning_outcome
+      - program_outcome
+      - updated_at
+      - weight
+    LOtoPOContributionList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        program_outcome:
+          allOf:
+          - $ref: '#/components/schemas/ProgramOutcomeList'
+          readOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
+        is_approved:
+          type: boolean
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - program_outcome
+      - weight
+    LOtoPOContributionWrite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        learning_outcome_id:
+          type: integer
+          writeOnly: true
+        program_outcome_id:
+          type: integer
+          writeOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
+        is_approved:
+          type: boolean
+          readOnly: true
+      required:
+      - id
+      - is_approved
+      - learning_outcome_id
+      - program_outcome_id
+      - weight
+    LearningOutcomeDetail:
+      type: object
+      description: Response detail for LO with contributions.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          description: The description of the learning outcome
+        course_template:
+          allOf:
+          - $ref: '#/components/schemas/CourseTemplateList'
+          readOnly: true
+        po_contributions:
+          type: string
+          readOnly: true
+      required:
+      - course_template
+      - description
+      - full_code
+      - id
+      - po_contributions
+    LearningOutcomeList:
+      type: object
+      description: Response summary for LOs.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          description: The description of the learning outcome
+      required:
+      - description
+      - full_code
+      - id
+    LearningOutcomeWrite:
+      type: object
+      description: Request schema for creating/updating LOs.
+      properties:
+        course_template_id:
+          type: integer
+          writeOnly: true
+        code:
+          type: string
+          description: The code of the learning outcome
+          maxLength: 10
+        description:
+          type: string
+          description: The description of the learning outcome
+      required:
+      - code
+      - course_template_id
+      - description
+    Login:
+      type: object
+      description: |-
+        Custom Login Serializer to add extra responses or customize claims if needed in future.
+        Currently used to provide proper documentation.
+      properties:
+        email:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    Logout:
+      type: object
+      description: Serializer for logout request.
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
+    PaginatedAssessmentGradeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentGrade'
+    PaginatedAssessmentListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentList'
+    PaginatedAssessmentToLOContributionListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentToLOContributionList'
+    PaginatedCourseInstanceListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseInstanceList'
+    PaginatedCourseLOAchievementList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseLOAchievement'
+    PaginatedCourseTemplateListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CourseTemplateList'
+    PaginatedDepartmentListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepartmentList'
+    PaginatedLOtoPOContributionListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LOtoPOContributionList'
+    PaginatedLearningOutcomeListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LearningOutcomeList'
+    PaginatedProgramOutcomeListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgramOutcomeList'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PatchedAssessmentGrade:
+      type: object
+      description: Standard assessment grade serializer.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        student:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        student_id:
+          type: integer
+          writeOnly: true
+        assessment:
+          allOf:
+          - $ref: '#/components/schemas/AssessmentList'
+          readOnly: true
+        assessment_id:
+          type: integer
+          writeOnly: true
+        score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        entered_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedAssessmentToLOContributionWrite:
+      type: object
+      properties:
+        assessment_id:
+          type: integer
+          writeOnly: true
+        learning_outcome_id:
+          type: integer
+          writeOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
+    PatchedAssessmentWrite:
+      type: object
+      description: Request schema for creating/updating assessments.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        course_instance_id:
+          type: integer
+          writeOnly: true
+        name:
+          type: string
+          description: 'Ex: Midterm 1, Final Exam, Project 1'
+          maxLength: 50
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentTypeEnum'
+        max_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Contribution weight to final grade (%)
+          description: 'Weight of this assessment towards the final course grade ex:
+            20 for 20%'
+    PatchedCourseInstanceWrite:
+      type: object
+      description: Request schema for creating/updating course instances.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        course_template_id:
+          type: integer
+          writeOnly: true
+        semester:
+          type: string
+          description: 'Ex: Fall 2024'
+          maxLength: 20
+        year:
+          type: integer
+          description: 'Ex: 2024'
+        instructor_id:
+          type: integer
+          writeOnly: true
+          nullable: true
+        is_active:
+          type: boolean
+        students:
+          type: array
+          items:
+            type: integer
+    PatchedCourseTemplateWrite:
+      type: object
+      description: Request schema for creating/updating course templates.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        department_id:
+          type: integer
+          writeOnly: true
+        code:
+          type: string
+          maxLength: 10
+        name:
+          type: string
+          maxLength: 100
+        credit:
+          type: integer
+        description:
+          type: string
+          nullable: true
+    PatchedDepartmentWrite:
+      type: object
+      description: Request schema for creating/updating departments.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Department Name
+          maxLength: 100
+        code:
+          type: string
+          title: Department Code
+          maxLength: 10
+        is_active:
+          type: boolean
+    PatchedLOtoPOContributionWrite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        learning_outcome_id:
+          type: integer
+          writeOnly: true
+        program_outcome_id:
+          type: integer
+          writeOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
+        is_approved:
+          type: boolean
+          readOnly: true
+    PatchedLearningOutcomeWrite:
+      type: object
+      description: Request schema for creating/updating LOs.
+      properties:
+        course_template_id:
+          type: integer
+          writeOnly: true
+        code:
+          type: string
+          description: The code of the learning outcome
+          maxLength: 10
+        description:
+          type: string
+          description: The description of the learning outcome
+    PatchedProgramOutcomeWrite:
+      type: object
+      description: Request schema for creating/updating POs.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        department_id:
+          type: integer
+          writeOnly: true
+        code:
+          type: string
+          title: PO Code
+          description: 'Ex: PO-1, PO-2'
+          maxLength: 10
+        description:
+          type: string
+        is_active:
+          type: boolean
+          title: Is Active?
+          description: Set to False for obsolete POs
+    PatchedUser:
+      type: object
+      description: Standard user serializer for CRUD operations.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        department:
+          type: integer
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        student_id:
+          type: string
+          nullable: true
+          description: Only for students
+          pattern: ^\d+$
+          maxLength: 9
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+    ProgramOutcomeDetail:
+      type: object
+      description: Response detail for PO with metadata.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        description:
+          type: string
+        is_active:
+          type: boolean
+          title: Is Active?
+          description: Set to False for obsolete POs
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Creation Date
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Update Date
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentSimple'
+          readOnly: true
+        created_by_name:
+          type: string
+          readOnly: true
+        lo_contributions_count:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - created_by_name
+      - department
+      - description
+      - full_code
+      - id
+      - lo_contributions_count
+      - updated_at
+    ProgramOutcomeList:
+      type: object
+      description: Response summary for PO lists.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_code:
+          type: string
+          readOnly: true
+        description:
+          type: string
+        is_active:
+          type: boolean
+          title: Is Active?
+          description: Set to False for obsolete POs
+      required:
+      - description
+      - full_code
+      - id
+    ProgramOutcomeWrite:
+      type: object
+      description: Request schema for creating/updating POs.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        department_id:
+          type: integer
+          writeOnly: true
+        code:
+          type: string
+          title: PO Code
+          description: 'Ex: PO-1, PO-2'
+          maxLength: 10
+        description:
+          type: string
+        is_active:
+          type: boolean
+          title: Is Active?
+          description: Set to False for obsolete POs
+      required:
+      - code
+      - department_id
+      - description
+      - id
+    Register:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+        password_confirm:
+          type: string
+          writeOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        student_id:
+          type: string
+          nullable: true
+          description: Only for students
+          pattern: ^\d+$
+          maxLength: 9
+        department:
+          type: integer
+          nullable: true
+      required:
+      - department
+      - email
+      - first_name
+      - last_name
+      - password
+      - password_confirm
+      - student_id
+    RoleEnum:
+      enum:
+      - DEPARTMENT_HEAD
+      - INSTRUCTOR
+      - STUDENT
+      type: string
+      description: |-
+        * `DEPARTMENT_HEAD` - Department Head
+        * `INSTRUCTOR` - Instructor
+        * `STUDENT` - Student
+    StudentEnrollment:
+      type: object
+      description: Serializer for bulk student enrollment operations.
+      properties:
+        student_ids:
+          type: array
+          items:
+            type: integer
+          description: List of student IDs to enroll
+      required:
+      - student_ids
+    StudentUnenroll:
+      type: object
+      description: Serializer for single student unenrollment.
+      properties:
+        student_id:
+          type: integer
+          description: ID of student to unenroll
+      required:
+      - student_id
+    User:
+      type: object
+      description: Standard user serializer for CRUD operations.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        department:
+          type: integer
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        student_id:
+          type: string
+          nullable: true
+          description: Only for students
+          pattern: ^\d+$
+          maxLength: 9
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - department_name
+      - email
+      - id
+    UserMe:
+      type: object
+      description: Serializer for current authenticated user endpoint.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Email address
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        department:
+          type: integer
+          readOnly: true
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        student_id:
+          type: string
+          nullable: true
+          description: Only for students
+          pattern: ^\d+$
+          maxLength: 9
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        active_courses:
+          type: string
+          readOnly: true
+      required:
+      - active_courses
+      - department
+      - department_name
+      - email
+      - id
+      - role
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

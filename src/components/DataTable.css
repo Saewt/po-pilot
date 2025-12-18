@@ -1,0 +1,26 @@
+.data-table-wrapper {
+  overflow-x: auto;
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table-row-clickable {
+  cursor: pointer;
+}
+
+.data-table-empty {
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-primary);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+
