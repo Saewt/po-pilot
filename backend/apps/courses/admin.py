@@ -70,27 +70,39 @@ class CourseInstanceAdmin(admin.ModelAdmin):
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "students":
             obj = getattr(request, "_obj_", None)
+            User = db_field.remote_field.model
+            department = None
+            
             if obj:
-                # Filter students to only those in the same department
-                # We use the field's related model to get the manager, ensuring we respect existing limits if possible,
-                # but limit_choices_to is on the model field. 
-                # Better to start with the model's default manager or strict filter.
-                # db_field.remote_field.model is the User model
-                User = db_field.remote_field.model
-                kwargs["queryset"] = User.objects.filter(
-                   role="STUDENT",
-                   department=obj.course_template.department
-                )
+                # Editing existing instance - use the course's department
+                department = obj.course_template.department
             else:
-                # If creating new, just show all students (or could be empty)
-                # Let's keep existing behavior (all students)
-                pass
+                # Creating new instance - try to get course_template from POST data
+                course_template_id = request.POST.get('course_template')
+                if course_template_id:
+                    try:
+                        from apps.courses.models import CourseTemplate
+                        course_template = CourseTemplate.objects.get(pk=course_template_id)
+                        department = course_template.department
+                    except CourseTemplate.DoesNotExist:
+                        pass
+                
+                # Fallback to user's department if no course_template selected yet
+                if not department and hasattr(request.user, 'department') and request.user.department:
+                    department = request.user.department
+            
+            if department:
+                kwargs["queryset"] = User.objects.filter(role="STUDENT", department=department)
+            else:
+                # Superuser without department: show all students
+                kwargs["queryset"] = User.objects.filter(role="STUDENT")
+                
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
 
 @admin.register(Assessment)
 class AssessmentAdmin(admin.ModelAdmin):
-    list_display = ("name", "course_instance", "assessment_type", "max_score", "weight")
+    list_display = ("id","name", "course_instance", "assessment_type", "max_score", "weight")
     list_filter = ("assessment_type", "course_instance__course_template__department")
     search_fields = ("name", "course_instance__course_template__code", "course_instance__course_template__name")
     inlines = [AssessmentToLOInline]
@@ -125,6 +137,38 @@ class LOtoPOContributionAdmin(admin.ModelAdmin):
     )
     search_fields = ("learning_outcome__code", "program_outcome__code")
     actions = ["approve_mappings"]
+
+    def get_form(self, request, obj=None, **kwargs):
+        request._obj_ = obj
+        return super().get_form(request, obj, **kwargs)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        obj = getattr(request, "_obj_", None)
+        
+        if db_field.name == "program_outcome":
+            from apps.core.models import ProgramOutcome
+            
+            if obj and obj.learning_outcome:
+                # Editing: filter by LO's department
+                kwargs["queryset"] = ProgramOutcome.objects.filter(
+                    department=obj.learning_outcome.course_template.department
+                )
+            else:
+                # Creating: try to get LO from POST, fallback to user dept
+                lo_id = request.POST.get('learning_outcome')
+                if lo_id:
+                    try:
+                        lo = LearningOutcome.objects.get(pk=lo_id)
+                        kwargs["queryset"] = ProgramOutcome.objects.filter(
+                            department=lo.course_template.department
+                        )
+                    except LearningOutcome.DoesNotExist:
+                        pass
+                elif hasattr(request.user, 'department') and request.user.department:
+                    kwargs["queryset"] = ProgramOutcome.objects.filter(
+                        department=request.user.department
+                    )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def approve_mappings(self, request, queryset):
         user = request.user

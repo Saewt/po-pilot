@@ -159,6 +159,7 @@ class CourseInstanceDetailSerializer(serializers.ModelSerializer):
     full_code = serializers.ReadOnlyField(source="get_full_code")
     course_template = CourseTemplateListSerializer(read_only=True)
     instructor = UserSerializer(read_only=True)
+    students = UserSerializer(many=True, read_only=True)
     students_count = serializers.IntegerField(read_only=True)
     assessments_summary = serializers.SerializerMethodField()
 
@@ -166,7 +167,7 @@ class CourseInstanceDetailSerializer(serializers.ModelSerializer):
         model = CourseInstance
         fields = [
             "id", "full_code", "semester", "year", 
-            "course_template", "instructor", "students_count", 
+            "course_template", "instructor", "students", "students_count", 
             "assessments_summary", "is_active"
         ]
         read_only_fields = ["id"]
@@ -262,6 +263,21 @@ class LOtoPOContributionWriteSerializer(serializers.ModelSerializer):
         model = LOtoPOContribution
         fields = ["id", "learning_outcome_id", "program_outcome_id", "weight", "is_approved"]
         read_only_fields = ["id", "is_approved"]
+
+    def validate(self, data):
+        learning_outcome = data.get('learning_outcome')
+        program_outcome = data.get('program_outcome')
+        
+        if learning_outcome and program_outcome:
+            lo_dept = learning_outcome.course_template.department
+            po_dept = program_outcome.department
+            
+            if lo_dept != po_dept:
+                raise serializers.ValidationError({
+                    "program_outcome_id": f"Program Outcome must belong to the same department as Learning Outcome ({lo_dept.code})."
+                })
+        
+        return data
 
 
 class LOtoPOContributionListSerializer(serializers.ModelSerializer):

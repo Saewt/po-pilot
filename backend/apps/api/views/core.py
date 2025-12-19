@@ -6,6 +6,7 @@ from rest_framework import status
 from django.utils import timezone
 from django.db.models import Count, Q
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from apps.api.permissions import IsDepartmentHead, IsInstructor, IsStudent
 
 from apps.core.models import Department, ProgramOutcome
@@ -150,13 +151,43 @@ class LOToPOContributionViewSet(ModelViewSet):
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='learning_outcome_id', description='Filter by Learning Outcome ID', required=False, type=int),
+            OpenApiParameter(name='program_outcome_id', description='Filter by Program Outcome ID', required=False, type=int),
+            OpenApiParameter(name='is_approved', description='Filter by approval status (true/false)', required=False, type=bool),
+            OpenApiParameter(name='course_template_id', description='Filter by Course Template ID', required=False, type=int),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         """
-        Filter contributions.
+        Filter contributions by query parameters and user role.
         """
         queryset = super().get_queryset()
         user = self.request.user
         
+        # Query parameter filters
+        learning_outcome_id = self.request.query_params.get('learning_outcome_id')
+        if learning_outcome_id:
+            queryset = queryset.filter(learning_outcome_id=learning_outcome_id)
+        
+        program_outcome_id = self.request.query_params.get('program_outcome_id')
+        if program_outcome_id:
+            queryset = queryset.filter(program_outcome_id=program_outcome_id)
+        
+        is_approved_param = self.request.query_params.get('is_approved')
+        if is_approved_param is not None:
+            is_approved = is_approved_param.lower() in ['true', '1', 'yes']
+            queryset = queryset.filter(is_approved=is_approved)
+        
+        course_template_id = self.request.query_params.get('course_template_id')
+        if course_template_id:
+            queryset = queryset.filter(learning_outcome__course_template_id=course_template_id)
+        
+        # Role-based filtering
         if user.is_department_head() or user.is_staff:
             return queryset
             

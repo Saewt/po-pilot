@@ -182,7 +182,7 @@ class AssessmentToLOContribution(models.Model):
     assessment = models.ForeignKey(
         Assessment,
         on_delete=models.CASCADE,
-        related_name="lo_contributions",
+        related_name="assessment_lo_contributions",
     )
     learning_outcome = models.ForeignKey(
         LearningOutcome,
