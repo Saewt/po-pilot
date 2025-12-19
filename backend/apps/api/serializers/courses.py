@@ -142,11 +142,12 @@ class CourseInstanceWriteSerializer(serializers.ModelSerializer):
 class CourseInstanceListSerializer(serializers.ModelSerializer):
     """Response summary for course instances."""
     full_code = serializers.ReadOnlyField(source="get_full_code")
+    course_name = serializers.ReadOnlyField(source="course_template.name")
     instructor = serializers.SerializerMethodField()
 
     class Meta:
         model = CourseInstance
-        fields = ["id", "full_code", "semester", "year", "instructor", "is_active"]
+        fields = ["id", "full_code", "course_name", "semester", "year", "instructor", "is_active"]
 
     def get_instructor(self, obj):
         if obj.instructor:
