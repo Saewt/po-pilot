@@ -35,6 +35,7 @@ from apps.api.serializers.courses import (
     CourseLOAchievementSerializer,
     StudentEnrollmentSerializer,
     StudentUnenrollSerializer,
+    CourseStudentSerializer,
 )
 # Note: LOtoPOContributionViewSet is in core.py, but used serializers from courses.py which I updated.
 
@@ -296,6 +297,23 @@ class CourseInstanceViewSet(ModelViewSet):
         return Response({
             "message": f"Successfully unenrolled student {student_id}."
         })
+
+    @extend_schema(
+        responses={200: CourseStudentSerializer(many=True)},
+        summary="List enrolled students",
+        description="Returns a list of students enrolled in this course with their id, first_name, and last_name.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['get'], permission_classes=[(IsInstructor & IsCourseInstructor) | IsDepartmentHead | IsAdminUser])
+    def students(self, request, pk=None):
+        """
+        List all students enrolled in this course.
+        Only instructors of the course and department heads can access.
+        """
+        course_instance = self.get_object()
+        students = course_instance.students.all().values('id', 'student_id', 'first_name', 'last_name')
+        serializer = CourseStudentSerializer(students, many=True)
+        return Response(serializer.data)
 
 
 class AssessmentViewSet(ModelViewSet):

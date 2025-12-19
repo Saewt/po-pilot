@@ -377,6 +377,14 @@ class StudentEnrollmentSerializer(serializers.Serializer):
         return student_ids
 
 
+class CourseStudentSerializer(serializers.Serializer):
+    """Simple serializer for listing students in a course."""
+    id = serializers.IntegerField()
+    student_id = serializers.IntegerField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+
+
 class StudentUnenrollSerializer(serializers.Serializer):
     """Serializer for single student unenrollment."""
     student_id = serializers.IntegerField(help_text="ID of student to unenroll")
