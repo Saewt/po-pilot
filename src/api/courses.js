@@ -33,4 +33,9 @@ export const coursesAPI = {
   delete: async (id) => {
     await http.delete(`/course-instances/${id}/`)
   },
+
+  enroll_students: async (id, data) => {
+    const response = await http.post(`/course-instances/${id}/enroll_students/`, data)
+    return response.data
+  },
 }

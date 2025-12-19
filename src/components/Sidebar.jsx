@@ -28,6 +28,8 @@ const Sidebar = () => {
     } else if (role === 'DEPARTMENT_HEAD') {
       return [
         { path: '/app/dept', label: 'Courses' },
+        { path: '/app/dept/instructors', label: 'Instructors' },
+        { path: '/app/dept/students', label: 'Students' },
         { path: '/app/dept/approvals', label: 'Approvals' },
         { path: '/app/dept/po-builder', label: 'PO Builder' },
       ]

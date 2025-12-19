@@ -38,6 +38,11 @@ export const loPoContributionsAPI = {
     const response = await http.post(`/lo-po-contributions/${id}/approve/`, {})
     return response.data
   },
+
+  reject: async (id) => {
+    const response = await http.post(`/lo-po-contributions/${id}/reject/`, {})
+    return response.data
+  },
 }
 
 

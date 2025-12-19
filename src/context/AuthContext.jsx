@@ -66,11 +66,11 @@ export const AuthProvider = ({ children }) => {
       return { success: true }
     } catch (err) {
       console.error('Login error:', err)
-      const errorMessage = err.response?.data?.detail || 
-                          err.response?.data?.non_field_errors?.[0] ||
-                          err.response?.data?.message ||
-                          err.message ||
-                          'Login failed'
+      const errorMessage = err.response?.data?.detail ||
+        err.response?.data?.non_field_errors?.[0] ||
+        err.response?.data?.message ||
+        err.message ||
+        'Login failed'
       setError(errorMessage)
       setLoading(false)
       return { success: false, error: errorMessage }
@@ -85,17 +85,17 @@ export const AuthProvider = ({ children }) => {
       setError(null)
       setLoading(true)
       console.log('Registering with data:', { ...userData, password: '***', password_confirm: '***' })
-      
+
       const registerResponse = await authAPI.register(userData)
       console.log('Registration API response:', registerResponse)
-      
+
       // Check if registration returned tokens (some APIs do this)
       if (registerResponse?.access && registerResponse?.refresh) {
         storage.setTokens(registerResponse.access, registerResponse.refresh)
         await fetchUser()
         return { success: true }
       }
-      
+
       // If no tokens, try to login
       console.log('Registration successful, attempting login...')
       const loginResult = await login(userData.email, userData.password)
@@ -108,10 +108,10 @@ export const AuthProvider = ({ children }) => {
       console.error('Registration error:', err)
       console.error('Registration error status:', err.response?.status)
       console.error('Registration error response:', err.response?.data)
-      
+
       // Handle validation errors from Django
       let errorMessage = 'Registration failed'
-      
+
       if (err.response?.status === 401) {
         errorMessage = 'Authentication error. Registration may require authentication or the endpoint may be misconfigured.'
       } else if (err.response?.data) {
@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }) => {
       } else if (err.message) {
         errorMessage = err.message
       }
-      
+
       setError(errorMessage)
       setLoading(false)
       return { success: false, error: errorMessage }

@@ -23,6 +23,8 @@ import DeptApprovals from './pages/dept/DeptApprovals'
 import DeptPOBuilder from './pages/dept/DeptPOBuilder'
 import DeptCourses from './pages/dept/DeptCourses'
 import DeptCourseDetail from './pages/dept/DeptCourseDetail'
+import DeptInstructorList from './pages/dept/DeptInstructorList'
+import DeptStudentList from './pages/dept/DeptStudentList'
 
 /**
  * Redirect authenticated users away from login/register
@@ -254,6 +256,30 @@ const AppRoutes = () => {
           </RequireAuth>
         }
       />
+      <Route
+        path="/app/dept/instructors"
+        element={
+          <RequireAuth>
+            <RequireRole roles="DEPARTMENT_HEAD">
+              <AppLayout>
+                <DeptInstructorList />
+              </AppLayout>
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/app/dept/students"
+        element={
+          <RequireAuth>
+            <RequireRole roles="DEPARTMENT_HEAD">
+              <AppLayout>
+                <DeptStudentList />
+              </AppLayout>
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
 
       <Route
         path="/app/dept/:courseId"
@@ -277,10 +303,16 @@ const AppRoutes = () => {
   )
 }
 
+import { ToastProvider } from './context/ToastContext'
+import ToastContainer from './components/ToastContainer'
+
 const App = () => {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ToastProvider>
+        <AppRoutes />
+        <ToastContainer />
+      </ToastProvider>
     </AuthProvider>
   )
 }

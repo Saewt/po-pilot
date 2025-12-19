@@ -14,4 +14,9 @@ export const usersAPI = {
         const response = await http.get(`/users/${id}/`)
         return response.data
     },
+
+    create: async (data) => {
+        const response = await http.post('/users/', data)
+        return response.data
+    },
 }

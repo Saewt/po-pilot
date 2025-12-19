@@ -1,45 +1,60 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { coursesAPI } from '../../api/courses'
-import LoadingState from '../../components/LoadingState'
-import ErrorState from '../../components/ErrorState'
-import DataTable from '../../components/DataTable'
-import '../../styles/pages.css'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { coursesAPI } from '../../api/courses';
+import LoadingState from '../../components/LoadingState';
+import ErrorState from '../../components/ErrorState';
+import DataTable from '../../components/DataTable';
+import '../../styles/pages.css';
 
 /**
- * DeptHead Courses Page
- * List of department courses
+ * Department Courses List Page
+ * Displays Course Code, Course Name, Semester, Year, Instructor, Students, and Actions.
  */
 const DeptCourses = () => {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [courses, setCourses] = useState([])
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [courses, setCourses] = useState([]);
 
   useEffect(() => {
-    loadCourses()
-  }, [])
+    loadCourses();
+  }, []);
 
   const loadCourses = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      const response = await coursesAPI.list()
-      setCourses(response.results || [])
+      setLoading(true);
+      setError(null);
+      // Fetch list of courses (basic list)
+      const response = await coursesAPI.list();
+      const rawCourses = response.results || [];
+      // For each course, fetch detailed data to ensure instructor and template objects are present
+      const enriched = await Promise.all(
+        rawCourses.map(async (c) => {
+          try {
+            const detail = await coursesAPI.get(c.id);
+            // Merge detail fields (instructor, course_template, etc.) onto the list item
+            return { ...c, ...detail };
+          } catch (e) {
+            console.error('Failed to fetch details for course', c.id, e);
+            return c;
+          }
+        })
+      );
+      setCourses(enriched);
     } catch (err) {
-      console.error('Failed to load courses:', err)
-      setError(err.response?.data?.detail || 'Failed to load courses')
+      console.error('Failed to load courses:', err);
+      setError(err.response?.data?.detail || 'Failed to load courses');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
-    return <LoadingState />
+    return <LoadingState />;
   }
 
   if (error) {
-    return <ErrorState error={error} onRetry={loadCourses} />
+    return <ErrorState error={error} onRetry={loadCourses} />;
   }
 
   const columns = [
@@ -48,35 +63,35 @@ const DeptCourses = () => {
       header: 'Course Name',
       accessor: 'course_template',
       render: (row) => {
-        const template = typeof row.course_template === 'object'
-          ? row.course_template
-          : null
-        return template?.name || 'N/A'
-      }
+        if (row.course_template && typeof row.course_template === 'object') {
+          return row.course_template.name || 'N/A';
+        }
+        return 'N/A';
+      },
     },
     { header: 'Semester', accessor: 'semester' },
     { header: 'Year', accessor: 'year' },
     {
-      header: 'Active',
-      accessor: 'is_active',
-      render: (row) => row.is_active ? 'Yes' : 'No'
-    },
-    {
       header: 'Instructor',
       accessor: 'instructor',
       render: (row) => {
-        if (typeof row.instructor === 'string') return row.instructor
-        if (row.instructor_name) return row.instructor_name
-        if (typeof row.instructor === 'object' && row.instructor) {
-          return `${row.instructor.first_name} ${row.instructor.last_name}`
+        if (row.instructor && typeof row.instructor === 'object') {
+          const first = row.instructor.first_name || '';
+          const last = row.instructor.last_name || '';
+          const full = `${first} ${last}`.trim();
+          return full || <span className="text-secondary">Not Assigned</span>;
         }
-        return 'N/A'
-      }
+        return <span className="text-secondary">Not Assigned</span>;
+      },
     },
     {
       header: 'Students',
-      accessor: 'students_count',
-      render: (row) => row.students_count || (row.students?.length || 0)
+      accessor: 'students',
+      render: (row) => {
+        if (Array.isArray(row.students)) return row.students.length;
+        if (row.students_count !== undefined) return row.students_count;
+        return 0;
+      },
     },
     {
       header: 'Actions',
@@ -84,8 +99,8 @@ const DeptCourses = () => {
       render: (row) => (
         <button
           onClick={(e) => {
-            e.stopPropagation()
-            navigate(`/app/dept/${row.id}`)
+            e.stopPropagation();
+            navigate(`/app/dept/${row.id}`);
           }}
           style={{
             padding: '0.25rem 0.5rem',
@@ -99,17 +114,16 @@ const DeptCourses = () => {
         >
           View Details
         </button>
-      )
+      ),
     },
-  ]
+  ];
 
   return (
     <div className="page-container">
       <h1 className="page-title">Department Courses</h1>
       <DataTable columns={columns} data={courses} />
     </div>
-  )
-}
+  );
+};
 
-export default DeptCourses
-
+export default DeptCourses;
