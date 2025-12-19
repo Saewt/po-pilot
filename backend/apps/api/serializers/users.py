@@ -121,3 +121,27 @@ class DepartmentHeadSerializer(serializers.ModelSerializer):
             "total_courses": obj.department.course_templates.count(),
             "active_program_outcomes": obj.department.program_outcomes.filter(is_active=True).count(),
         }
+
+
+class DepartmentMemberCreateSerializer(serializers.ModelSerializer):
+    """Serializer for Department Heads to create Instructors."""
+    password = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = User
+        fields = ["id", "email", "password", "first_name", "last_name", "role", "student_id"]
+        read_only_fields = ["id"]
+
+    def validate_role(self, value):
+        if value not in ["INSTRUCTOR", "STUDENT"]:
+            raise serializers.ValidationError("You can only create Instructors or Students.")
+        return value
+
+    def validate(self, data):
+        if data.get('role') == 'STUDENT' and not data.get('student_id'):
+             raise serializers.ValidationError({"student_id": "Student ID is required for students."})
+        return data
+
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user

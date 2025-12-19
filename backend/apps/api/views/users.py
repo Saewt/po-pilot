@@ -39,13 +39,31 @@ class UserViewSet(ModelViewSet):
     def get_permissions(self):
         """
         - List/Retrieve: Department Head or Admin
-        - Create/Update/Delete: Admin only
+        - Create: Department Head or Admin
+        - Update/Delete: Admin only
         """
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'create']:
             permission_classes = [IsDepartmentHead | IsAdminUser]
         else:
             permission_classes = [IsAdminUser]
         return [permission() for permission in permission_classes]
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+             # Need to import inside method to avoid circular import if placed at top level with some patterns, 
+             # though here it should be fine. But safer given the previous file structure.
+             from apps.api.serializers.users import DepartmentMemberCreateSerializer
+             return DepartmentMemberCreateSerializer
+        return UserSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.is_department_head() and not user.is_staff:
+            # Auto-assign to dept head's department
+            serializer.save(department=user.department)
+        else:
+            serializer.save()
+
     
     def get_queryset(self):
         """Filter queryset based on user role and query params."""

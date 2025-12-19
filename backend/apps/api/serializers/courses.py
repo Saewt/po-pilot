@@ -356,8 +356,8 @@ class CourseLOAchievementSerializer(serializers.Serializer):
 class StudentEnrollmentSerializer(serializers.Serializer):
     """Serializer for bulk student enrollment operations."""
     student_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        help_text="List of student IDs to enroll"
+        child=serializers.CharField(),
+        help_text="List of Student IDs (e.g. '20205011') to enroll"
     )
     
     def validate_student_ids(self, student_ids):
@@ -365,8 +365,9 @@ class StudentEnrollmentSerializer(serializers.Serializer):
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        students = User.objects.filter(id__in=student_ids, role="STUDENT")
-        found_ids = set(students.values_list('id', flat=True))
+        # Filter by student_id field, NOT db id
+        students = User.objects.filter(student_id__in=student_ids, role="STUDENT")
+        found_ids = set(students.values_list('student_id', flat=True))
         missing_ids = set(student_ids) - found_ids
         
         if missing_ids:
@@ -380,21 +381,21 @@ class StudentEnrollmentSerializer(serializers.Serializer):
 class CourseStudentSerializer(serializers.Serializer):
     """Simple serializer for listing students in a course."""
     id = serializers.IntegerField()
-    student_id = serializers.IntegerField()
+    student_id = serializers.CharField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
 
 
 class StudentUnenrollSerializer(serializers.Serializer):
     """Serializer for single student unenrollment."""
-    student_id = serializers.IntegerField(help_text="ID of student to unenroll")
+    student_id = serializers.CharField(help_text="Student ID (e.g. '20205011') to unenroll")
     
     def validate_student_id(self, student_id):
         """Validate that the ID is a valid student."""
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        if not User.objects.filter(id=student_id, role="STUDENT").exists():
+        if not User.objects.filter(student_id=student_id, role="STUDENT").exists():
             raise serializers.ValidationError(f"Invalid student ID: {student_id}")
         
         return student_id

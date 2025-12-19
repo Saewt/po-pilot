@@ -258,7 +258,8 @@ class CourseInstanceViewSet(ModelViewSet):
         
         with transaction.atomic():
             student_ids = serializer.validated_data['student_ids']
-            students = User.objects.filter(id__in=student_ids, role="STUDENT")
+            # Lookup by string student_id
+            students = User.objects.filter(student_id__in=student_ids, role="STUDENT")
             course_instance.students.add(*students)
         
         return Response({
@@ -284,9 +285,10 @@ class CourseInstanceViewSet(ModelViewSet):
         User = get_user_model()
         
         student_id = serializer.validated_data['student_id']
-        student = User.objects.get(id=student_id)
+        # Lookup by string student_id
+        student = User.objects.get(student_id=student_id)
         
-        if not course_instance.students.filter(id=student_id).exists():
+        if not course_instance.students.filter(student_id=student_id).exists():
             return Response(
                 {"error": "Student is not enrolled in this course."},
                 status=status.HTTP_400_BAD_REQUEST
