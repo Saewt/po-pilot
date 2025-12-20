@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_spectacular",
     "rest_framework_simplejwt.token_blacklist",
+    "apps.notifications.apps.NotificationsConfig",
+
 ]
 
 MIDDLEWARE = [
