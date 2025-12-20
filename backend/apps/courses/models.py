@@ -259,3 +259,26 @@ class LOtoPOContribution(models.Model):
         self.approved_by = user
         self.approved_at = timezone.now()
         self.save()
+
+class CourseAnnouncement(models.Model):
+    course_instance = models.ForeignKey(
+        "courses.CourseInstance",
+        on_delete=models.CASCADE,
+        related_name="announcements",
+    )
+    title = models.CharField(max_length=150)
+    message = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_announcements",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.course_instance.get_full_code()} - {self.title}"
