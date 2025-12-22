@@ -106,3 +106,31 @@ class ProgramOutcome(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class DepartmentAnnouncement(models.Model):
+    """Department-wide announcements posted by department heads."""
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name="announcements",
+    )
+    title = models.CharField(max_length=150)
+    message = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_department_announcements",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Department Announcement"
+        verbose_name_plural = "Department Announcements"
+
+    def __str__(self):
+        return f"{self.department.code} - {self.title}"
