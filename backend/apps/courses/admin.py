@@ -43,8 +43,8 @@ class LOtoPOInline(admin.TabularInline):
 
 @admin.register(CourseTemplate)
 class CourseTemplateAdmin(admin.ModelAdmin):
-    list_display = ("department", "code", "name", "credit")
-    list_filter = ("department",)
+    list_display = ("department", "code", "name", "credit", "target_class_year")
+    list_filter = ("department", "target_class_year")
     search_fields = ("code", "name", "department__code", "department__name")
     inlines = [LearningOutcomeInline]
 

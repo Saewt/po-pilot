@@ -106,6 +106,11 @@ class CourseTemplateViewSet(ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        
+        user = self.request.user
+        if user.is_department_head() and not (user.is_staff or user.is_superuser):
+             queryset = queryset.filter(department=user.department)
+
         if self.action == 'retrieve':
             queryset = queryset.select_related('department').prefetch_related(
                 'learning_outcomes', 'instances'
@@ -196,8 +201,11 @@ class CourseInstanceViewSet(ModelViewSet):
                 pass
 
         # Role-based visibility filtering
-        if user.is_department_head() or user.is_staff or user.is_superuser:
+        if user.is_staff or user.is_superuser:
             pass
+        elif user.is_department_head():
+            # Department Heads only see courses in their department
+            queryset = queryset.filter(course_template__department=user.department)
         elif user.is_instructor():
             # Instructors only see their own courses
             queryset = queryset.filter(instructor=user)
@@ -316,6 +324,61 @@ class CourseInstanceViewSet(ModelViewSet):
         students = course_instance.students.all().values('id', 'student_id', 'first_name', 'last_name')
         serializer = CourseStudentSerializer(students, many=True)
         return Response(serializer.data)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='class_year', description='Filter by class year (1-4). If not provided, uses course target_class_year.', type=int, required=False),
+        ],
+        responses={200: CourseStudentSerializer(many=True)},
+        summary="List available students for enrollment",
+        description="Returns students in same department who are NOT enrolled. Auto-filters by course's target_class_year if no class_year param given.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['get'], permission_classes=[(IsInstructor & IsCourseInstructor) | IsDepartmentHead | IsAdminUser])
+    def available_students(self, request, pk=None):
+        """
+        List students in same department who are NOT enrolled in this course.
+        Auto-filters by course's target_class_year if no class_year parameter is provided.
+        """
+        course_instance = self.get_object()
+        department = course_instance.course_template.department
+        target_class_year = course_instance.course_template.target_class_year
+        
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # Same department, role=STUDENT, not already enrolled
+        students = User.objects.filter(
+            role="STUDENT",
+            department=department
+        ).exclude(enrolled_courses=course_instance)
+        
+        # Get class_year filter - use param or fall back to course's target
+        class_year_param = request.query_params.get('class_year')
+        filter_year = None
+        
+        if class_year_param:
+            try:
+                filter_year = int(class_year_param)
+            except ValueError:
+                pass
+        elif target_class_year:
+            # Auto-filter by course's target class year
+            filter_year = target_class_year
+        
+        # Apply filter if we have a year
+        if filter_year:
+            students = [s for s in students if s.class_year == filter_year]
+            data = [{"id": s.id, "student_id": s.student_id, "first_name": s.first_name, "last_name": s.last_name} for s in students]
+        else:
+            data = list(students.values('id', 'student_id', 'first_name', 'last_name'))
+        
+        # Include metadata about filtering in response
+        return Response({
+            "target_class_year": target_class_year,
+            "filtered_by_class_year": filter_year,
+            "students": CourseStudentSerializer(data, many=True).data
+        })
 
 
 class AssessmentViewSet(ModelViewSet):

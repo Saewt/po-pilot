@@ -15,6 +15,13 @@ class CourseTemplate(models.Model):
     name = models.CharField(max_length=100,)
     credit = models.PositiveSmallIntegerField()
     description = models.TextField(blank=True, null=True)
+    target_class_year = models.PositiveSmallIntegerField(
+        "Target Class Year",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(6)],
+        help_text="Target class year for this course (1-6). Helps filter students during enrollment."
+    )
     
     class Meta:
         unique_together = ("department", "code")

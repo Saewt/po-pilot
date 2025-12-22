@@ -55,10 +55,15 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class LoginSerializer(TokenObtainPairSerializer):
     """
-    Custom Login Serializer to add extra responses or customize claims if needed in future.
-    Currently used to provide proper documentation.
+    Custom Login Serializer that includes must_change_password flag.
     """
-    pass
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['must_change_password'] = self.user.must_change_password
+        data['user_id'] = self.user.id
+        data['email'] = self.user.email
+        data['role'] = self.user.role
+        return data
 
 
 class CustomTokenRefreshSerializer(TokenRefreshSerializer):
@@ -71,3 +76,16 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
 class LogoutSerializer(serializers.Serializer):
     """Serializer for logout request."""
     refresh = serializers.CharField()
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Change password serializer."""
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password is incorrect.")
+        return value
+

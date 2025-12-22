@@ -28,7 +28,7 @@ class CourseTemplateWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CourseTemplate
-        fields = ["id", "department_id", "code", "name", "credit", "description"]
+        fields = ["id", "department_id", "code", "name", "credit", "description", "target_class_year"]
         read_only_fields = ["id"]
 
 
@@ -39,7 +39,7 @@ class CourseTemplateListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CourseTemplate
-        fields = ["id", "department", "full_code", "name", "credit"]
+        fields = ["id", "department", "full_code", "name", "credit", "target_class_year"]
 
 
 class CourseTemplateDetailSerializer(serializers.ModelSerializer):
@@ -53,7 +53,7 @@ class CourseTemplateDetailSerializer(serializers.ModelSerializer):
         model = CourseTemplate
         fields = [
             "id", "department", "full_code", "code", "name",
-            "credit", "description", 
+            "credit", "description", "target_class_year",
             "learning_outcomes_count", "instances_summary"
         ]
         read_only_fields = ["id"]
@@ -132,7 +132,10 @@ class CourseInstanceWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseInstance
         fields = ["id", "course_template_id", "semester", "year", "instructor_id", "is_active", "students"]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "students"]
+        extra_kwargs = {
+            'students': {'required': False}
+        }
     
     def validate(self, data):
         # Ensure validation logic if any. 
@@ -143,11 +146,12 @@ class CourseInstanceListSerializer(serializers.ModelSerializer):
     """Response summary for course instances."""
     full_code = serializers.ReadOnlyField(source="get_full_code")
     course_name = serializers.ReadOnlyField(source="course_template.name")
+    target_class_year = serializers.ReadOnlyField(source="course_template.target_class_year")
     instructor = serializers.SerializerMethodField()
 
     class Meta:
         model = CourseInstance
-        fields = ["id", "full_code", "course_name", "semester", "year", "instructor", "is_active"]
+        fields = ["id", "full_code", "course_name", "target_class_year", "semester", "year", "instructor", "is_active"]
 
     def get_instructor(self, obj):
         if obj.instructor:
