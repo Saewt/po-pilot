@@ -11,9 +11,10 @@ class UserMeSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "id", "email", "role", "department", "department_name", 
-            "student_id", "first_name", "last_name", "active_courses"
+            "student_id", "enrollment_year", "class_year", "must_change_password",
+            "first_name", "last_name", "active_courses"
         )
-        read_only_fields = ("id", "email", "role", "department", "department_name", "active_courses")
+        read_only_fields = ("id", "email", "role", "department", "department_name", "class_year", "active_courses")
     
     def get_active_courses(self, obj):
         """Get active enrolled courses for students."""
@@ -32,9 +33,10 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id", "email", "role", "department", "department_name", 
-            "student_id", "first_name", "last_name", "is_active", "date_joined"
+            "student_id", "enrollment_year", "class_year",
+            "first_name", "last_name", "is_active", "date_joined"
         ]
-        read_only_fields = ["id", "date_joined"]
+        read_only_fields = ["id", "date_joined", "class_year"]
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
@@ -57,10 +59,11 @@ class StudentSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "student_id",
+            "enrollment_year", "class_year",
             "department", "department_name", "is_active", "date_joined",
             "enrolled_courses_count", "po_scores"
         ]
-        read_only_fields = ["id", "date_joined", "enrolled_courses_count", "po_scores"]
+        read_only_fields = ["id", "date_joined", "class_year", "enrolled_courses_count", "po_scores"]
     
     def get_enrolled_courses_count(self, obj):
         """Get count of active enrolled courses."""
@@ -124,8 +127,8 @@ class DepartmentHeadSerializer(serializers.ModelSerializer):
 
 
 class DepartmentMemberCreateSerializer(serializers.ModelSerializer):
-    """Serializer for Department Heads to create Instructors."""
-    password = serializers.CharField(write_only=True)
+    """Serializer for Department Heads to create Instructors or Students."""
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     
     class Meta:
         model = User
@@ -143,5 +146,104 @@ class DepartmentMemberCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
+        # Auto-generate password if not provided: FirstName + LastName (no spaces)
+        password = validated_data.pop('password', None)
+        if not password:
+            first_name = validated_data.get('first_name', '').strip().title()
+            last_name = validated_data.get('last_name', '').strip().title()
+            
+            # Normalize names in validated_data as well
+            validated_data['first_name'] = first_name
+            validated_data['last_name'] = last_name
+
+            raw_password = f"{first_name}{last_name}".replace(" ", "")
+            
+            # Helper for password normalization
+            replacements = {
+                'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G', 'ı': 'i', 'I': 'I', 'İ': 'I', 'ö': 'o', 'Ö': 'O', 'ş': 's', 'Ş': 'S', 'ü': 'u', 'Ü': 'U'
+            }
+            for tr, eng in replacements.items():
+                raw_password = raw_password.replace(tr, eng)
+            
+            password = raw_password
+        
+        # Set must_change_password for auto-generated passwords
+        validated_data['must_change_password'] = True
+        
+        user = User.objects.create_user(password=password, **validated_data)
         return user
+
+
+# -----------------------------------------------------------------------------
+# BULK STUDENT CREATION SERIALIZERS
+# -----------------------------------------------------------------------------
+
+class BulkStudentItemSerializer(serializers.Serializer):
+    """Single student data for bulk creation."""
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    student_id = serializers.CharField(max_length=9)
+    enrollment_year = serializers.IntegerField(required=False, allow_null=True)
+
+
+class BulkStudentCreateSerializer(serializers.Serializer):
+    """Bulk student creation request."""
+    department = serializers.CharField(
+        max_length=100,
+        help_text="Department code or name (must match your department)"
+    )
+    students = serializers.ListField(
+        child=BulkStudentItemSerializer(),
+        help_text="List of students to create"
+    )
+    
+    def validate_students(self, students):
+        """Check for duplicate emails or student_ids."""
+        emails = [s['email'] for s in students]
+        student_ids = [s['student_id'] for s in students]
+        
+        # Check for duplicates within the request
+        if len(emails) != len(set(emails)):
+            raise serializers.ValidationError("Duplicate emails in request.")
+        if len(student_ids) != len(set(student_ids)):
+            raise serializers.ValidationError("Duplicate student IDs in request.")
+        
+        # Check for existing in database
+        existing_emails = User.objects.filter(email__in=emails).values_list('email', flat=True)
+        if existing_emails:
+            raise serializers.ValidationError(f"Emails already exist: {list(existing_emails)}")
+        
+        existing_ids = User.objects.filter(student_id__in=student_ids).values_list('student_id', flat=True)
+        if existing_ids:
+            raise serializers.ValidationError(f"Student IDs already exist: {list(existing_ids)}")
+        
+        return students
+
+
+class BulkStudentResultSerializer(serializers.Serializer):
+    """Response for bulk student creation."""
+    created_count = serializers.IntegerField()
+    students = serializers.ListField(child=serializers.DictField())
+
+
+class BulkStudentDeleteSerializer(serializers.Serializer):
+    """Bulk student deletion request."""
+    student_ids = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="List of Student IDs to delete"
+    )
+    
+    def validate_student_ids(self, student_ids):
+        """Check that all student IDs exist."""
+        if not student_ids:
+            raise serializers.ValidationError("At least one student ID is required.")
+        
+        existing = User.objects.filter(student_id__in=student_ids, role="STUDENT")
+        existing_ids = set(existing.values_list('student_id', flat=True))
+        missing = set(student_ids) - existing_ids
+        
+        if missing:
+            raise serializers.ValidationError(f"Student IDs not found: {list(missing)}")
+        
+        return student_ids

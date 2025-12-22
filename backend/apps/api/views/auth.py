@@ -8,7 +8,8 @@ from apps.api.serializers.auth import (
     RegisterSerializer, 
     LoginSerializer, 
     CustomTokenRefreshSerializer,
-    LogoutSerializer
+    LogoutSerializer,
+    ChangePasswordSerializer
 )
 
 class RegisterView(generics.CreateAPIView):
@@ -81,3 +82,33 @@ class LogoutView(generics.GenericAPIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangePasswordView(generics.GenericAPIView):
+    """
+    Change the current user's password.
+    Clears must_change_password flag after successful change.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+    
+    @extend_schema(
+        summary="Change Password",
+        description="Change the current user's password. Clears must_change_password flag on success.",
+        request=ChangePasswordSerializer,
+        responses={
+            200: OpenApiResponse(description="Password changed successfully"),
+            400: OpenApiResponse(description="Bad Request - Invalid old password or validation error")
+        }
+    )
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        
+        user = request.user
+        user.set_password(serializer.validated_data['new_password'])
+        user.must_change_password = False
+        user.save()
+        
+        return Response({"message": "Password changed successfully."})
+

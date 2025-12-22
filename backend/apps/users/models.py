@@ -70,6 +70,17 @@ class User(AbstractUser):
         ],
         help_text="Only for students",
     )
+    enrollment_year = models.PositiveSmallIntegerField(
+        "Enrollment Year",
+        null=True,
+        blank=True,
+        help_text="Year the student enrolled (e.g., 2024)"
+    )
+    must_change_password = models.BooleanField(
+        "Must Change Password",
+        default=False,
+        help_text="If True, user must change password on next login"
+    )
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -87,6 +98,22 @@ class User(AbstractUser):
         return self.role == self.Role.INSTRUCTOR
     def is_student(self):
         return self.role == self.Role.STUDENT
+    
+    @property
+    def class_year(self):
+        """
+        Calculate current class year (1-4+) based on enrollment year.
+        Returns None for non-students or if enrollment_year not set.
+        """
+        if not self.is_student() or not self.enrollment_year:
+            return None
+        from datetime import date
+        current_year = date.today().year
+        current_month = date.today().month
+        # Akademik yıl Eylül'de başlar
+        academic_year = current_year if current_month >= 9 else current_year - 1
+        years_enrolled = academic_year - self.enrollment_year + 1
+        return max(1, years_enrolled)
     
     def get_active_enrolled_courses(self):
         if not self.is_student():

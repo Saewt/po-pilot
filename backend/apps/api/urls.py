@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views.auth import RegisterView, LoginView, CustomTokenRefreshView, LogoutView
+from .views.auth import RegisterView, LoginView, CustomTokenRefreshView, LogoutView, ChangePasswordView
 from apps.api.views.courses import (
     CourseTemplateViewSet,
     CourseInstanceViewSet,
@@ -41,6 +41,7 @@ urlpatterns = [
     path("auth/login/", LoginView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
     path("auth/logout/", LogoutView.as_view(), name="logout"),
+    path("auth/change-password/", ChangePasswordView.as_view(), name="change_password"),
     path("me/", MeView.as_view(), name="me"),
 ]
 
