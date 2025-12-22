@@ -55,3 +55,22 @@ def notify_course_announcement(sender, instance: CourseAnnouncement, created, **
             related_object_type="CourseAnnouncement",
             related_object_id=str(instance.id),
         )
+
+
+@receiver(post_save, sender="core.DepartmentAnnouncement")
+def notify_department_announcement(sender, instance, created, **kwargs):
+    """Send notification to all students in the department when an announcement is posted."""
+    if not created:
+        return
+
+    student_ids = instance.department.members.filter(role="STUDENT").values_list("id", flat=True)
+
+    for uid in student_ids:
+        Notification.objects.create(
+            recipient_id=uid,
+            notification_type=Notification.Type.GENERAL,
+            title=f"Duyuru: {instance.title}",
+            message=f"{instance.department.code} - {instance.message}",
+            related_object_type="DepartmentAnnouncement",
+            related_object_id=str(instance.id),
+        )
