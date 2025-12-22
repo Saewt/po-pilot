@@ -4,6 +4,9 @@ import { coursesAPI } from '../../api/courses';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
 import DataTable from '../../components/DataTable';
+import CourseManagerModal from '../../components/CourseManagerModal';
+import ConfirmationModal from '../../components/ConfirmationModal';
+import { useToast } from '../../context/ToastContext';
 import '../../styles/pages.css';
 
 /**
@@ -12,9 +15,12 @@ import '../../styles/pages.css';
  */
 const DeptCourses = () => {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [courses, setCourses] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState(null);
 
   useEffect(() => {
     loadCourses();
@@ -49,7 +55,27 @@ const DeptCourses = () => {
     }
   };
 
-  if (loading) {
+  const handleCourseCreated = () => {
+    loadCourses(); // Refresh list
+  };
+
+
+
+  const handleDeleteInstance = async () => {
+    if (!courseToDelete) return;
+
+    try {
+      await coursesAPI.delete(courseToDelete.id);
+      addToast('Course session deleted successfully', 'success');
+      setCourseToDelete(null);
+      loadCourses();
+    } catch (err) {
+      console.error('Delete course error:', err);
+      addToast(err.response?.data?.detail || 'Failed to delete course session', 'error');
+    }
+  };
+
+  if (loading && !courses.length) {
     return <LoadingState />;
   }
 
@@ -65,6 +91,16 @@ const DeptCourses = () => {
       render: (row) => {
         if (row.course_template && typeof row.course_template === 'object') {
           return row.course_template.name || 'N/A';
+        }
+        return 'N/A';
+      },
+    },
+    {
+      header: 'Target Year',
+      accessor: 'course_template.target_class_year',
+      render: (row) => {
+        if (row.course_template && typeof row.course_template === 'object') {
+          return row.course_template.target_class_year || 'N/A';
         }
         return 'N/A';
       },
@@ -97,31 +133,73 @@ const DeptCourses = () => {
       header: 'Actions',
       accessor: 'id',
       render: (row) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/app/dept/${row.id}`);
-          }}
-          style={{
-            padding: '0.25rem 0.5rem',
-            fontSize: '0.875rem',
-            backgroundColor: '#1976d2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
-        >
-          View Details
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/app/dept/${row.id}`);
+            }}
+            style={{
+              padding: '0.25rem 0.5rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            View Details
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCourseToDelete(row);
+            }}
+            style={{
+              padding: '0.25rem 0.5rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#d32f2f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Delete
+          </button>
+        </div>
       ),
     },
   ];
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Department Courses</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 className="page-title">Department Courses</h1>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          + New Course Session
+        </button>
+      </div>
+
       <DataTable columns={columns} data={courses} />
+
+      {showModal && (
+        <CourseManagerModal
+          onClose={() => setShowModal(false)}
+          onCourseCreated={handleCourseCreated}
+        />
+      )}
+
+      {courseToDelete && (
+        <ConfirmationModal
+          isOpen={!!courseToDelete}
+          title="Delete Course Session"
+          message={`Are you sure you want to delete the session ${courseToDelete.full_code || courseToDelete.course_template.name} (${courseToDelete.semester} ${courseToDelete.year})? This action cannot be undone.`}
+          onConfirm={handleDeleteInstance}
+          onCancel={() => setCourseToDelete(null)}
+        />
+      )}
     </div>
   );
 };

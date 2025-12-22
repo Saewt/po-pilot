@@ -81,5 +81,14 @@ export const authAPI = {
     const response = await http.get('/me/')
     return response.data
   },
+
+  /**
+   * Change password
+   * Requires: old_password, new_password
+   */
+  changePassword: async (passwords) => {
+    const response = await http.post('/auth/change-password/', passwords)
+    return response.data
+  },
 }
 

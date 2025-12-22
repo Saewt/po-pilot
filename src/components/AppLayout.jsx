@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import Sidebar from './Sidebar'
 import { useAuth } from '../context/AuthContext'
+import AnnouncementsModal from './AnnouncementsModal'
 import './AppLayout.css'
 
 /**
@@ -8,6 +10,8 @@ import './AppLayout.css'
  */
 const AppLayout = ({ children }) => {
   const { user, logout } = useAuth()
+
+  const [showAnnouncements, setShowAnnouncements] = useState(false)
 
   if (!user) return null
 
@@ -33,6 +37,15 @@ const AppLayout = ({ children }) => {
     } else {
       return (
         <div className="header-info">
+          {user.role === 'DEPARTMENT_HEAD' && (
+            <button
+              className="btn btn-primary"
+              style={{ marginRight: '1rem' }}
+              onClick={() => setShowAnnouncements(true)}
+            >
+              Announcements
+            </button>
+          )}
           <span className="header-name">{user.first_name} {user.last_name}</span>
           {user.department_name && (
             <span className="header-department">{user.department_name}</span>
@@ -62,6 +75,11 @@ const AppLayout = ({ children }) => {
           {children}
         </main>
       </div>
+
+      <AnnouncementsModal
+        isOpen={showAnnouncements}
+        onClose={() => setShowAnnouncements(false)}
+      />
     </div>
   )
 }

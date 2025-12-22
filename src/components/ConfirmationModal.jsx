@@ -1,8 +1,21 @@
 import React from 'react';
 import '../styles/toast.css';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+const ConfirmationModal = ({
+    isOpen,
+    onClose,
+    onConfirm,
+    title,
+    message,
+    confirmText = 'Confirm',
+    confirmVariant = 'primary'
+}) => {
     if (!isOpen) return null;
+
+    const getButtonClass = () => {
+        if (confirmVariant === 'danger') return 'btn btn-danger';
+        return 'btn btn-primary';
+    };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -17,11 +30,10 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
                         Cancel
                     </button>
                     <button
-                        className="btn btn-primary"
+                        className={getButtonClass()}
                         onClick={onConfirm}
-                        style={{ backgroundColor: '#d32f2f' }}
                     >
-                        Confirm
+                        {confirmText}
                     </button>
                 </div>
             </div>
@@ -30,3 +42,4 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
 };
 
 export default ConfirmationModal;
+

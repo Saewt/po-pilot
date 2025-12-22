@@ -6,6 +6,7 @@ import AppLayout from './components/AppLayout'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ChangePassword from './pages/ChangePassword'
 
 // Student pages
 import StudentCourses from './pages/student/StudentCourses'
@@ -116,6 +117,15 @@ const AppRoutes = () => {
           <AuthRedirect>
             <Register />
           </AuthRedirect>
+        }
+      />
+
+      <Route
+        path="/change-password"
+        element={
+          <RequireAuth>
+            <ChangePassword />
+          </RequireAuth>
         }
       />
 

@@ -24,7 +24,6 @@ const DeptInstructorList = () => {
         first_name: '',
         last_name: '',
         email: '',
-        password: '',
         role: 'INSTRUCTOR'
     })
 
@@ -59,14 +58,16 @@ const DeptInstructorList = () => {
 
         try {
             setLoading(true)
+            // Payload as requested: { email, first_name, last_name, role }
             await usersAPI.create({
-                ...regData,
-                username: regData.email, // Ensure username is set (using email)
-                department: user.department
+                email: regData.email,
+                first_name: regData.first_name,
+                last_name: regData.last_name,
+                role: 'INSTRUCTOR'
             })
             addToast('Instructor registered successfully', 'success')
             setShowRegister(false)
-            setRegData({ first_name: '', last_name: '', email: '', password: '', role: 'INSTRUCTOR' })
+            setRegData({ first_name: '', last_name: '', email: '', role: 'INSTRUCTOR' })
             await loadInstructors()
         } catch (err) {
             console.error('Registration failed:', err)
@@ -113,6 +114,7 @@ const DeptInstructorList = () => {
 
             <div className="info-card">
                 <p>List of all instructors in your department.</p>
+                <strong>Created instructor password are generated automatically. by default name and surname are used as password.</strong>
             </div>
 
             <DataTable
@@ -151,15 +153,6 @@ const DeptInstructorList = () => {
                                     type="email"
                                     value={regData.email}
                                     onChange={e => setRegData({ ...regData, email: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Password:</label>
-                                <input
-                                    type="password"
-                                    value={regData.password}
-                                    onChange={e => setRegData({ ...regData, password: e.target.value })}
                                     required
                                 />
                             </div>
