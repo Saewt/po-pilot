@@ -127,6 +127,18 @@ class DepartmentAnnouncement(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Audience(models.TextChoices):
+        STUDENTS = "STUDENTS", "Students"
+        INSTRUCTORS = "INSTRUCTORS", "Instructors"
+        ALL = "ALL", "All"
+
+    audience = models.CharField(
+        max_length=20,
+        choices=Audience.choices,
+        default=Audience.ALL,
+        help_text="Target audience for this announcement"
+    )
+
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "Department Announcement"

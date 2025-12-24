@@ -18,7 +18,8 @@ class AssessmentGrade(models.Model):
     score = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        validators=[MinValueValidator(0)],
+        help_text="Score obtained (0-max_score of assessment)",
     )
     entered_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

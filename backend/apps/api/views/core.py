@@ -1,4 +1,4 @@
-from rest_framework import permissions
+from rest_framework import permissions, serializers
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -23,7 +23,8 @@ from apps.api.serializers.core import (
 from apps.api.serializers.courses import (
     LOtoPOContributionWriteSerializer,
     LOtoPOContributionListSerializer,
-    LOtoPOContributionDetailSerializer
+    LOtoPOContributionDetailSerializer,
+    LOtoPOApprovalActionSerializer
 )
 
 
@@ -99,7 +100,17 @@ class ProgramOutcomeViewSet(ModelViewSet):
                 lo_contributions_total_count=Count('lo_contributions', distinct=True),
                 lo_contributions_approved_count=Count(
                     'lo_contributions',
-                    filter=Q(lo_contributions__is_approved=True),
+                    filter=Q(lo_contributions__approval_status='APPROVED'),
+                    distinct=True
+                ),
+                lo_contributions_pending_count=Count(
+                    'lo_contributions',
+                    filter=Q(lo_contributions__approval_status='PENDING'),
+                    distinct=True
+                ),
+                lo_contributions_declined_count=Count(
+                    'lo_contributions',
+                    filter=Q(lo_contributions__approval_status='DECLINED'),
                     distinct=True
                 )
             )
@@ -155,8 +166,9 @@ class LOToPOContributionViewSet(ModelViewSet):
         parameters=[
             OpenApiParameter(name='learning_outcome_id', description='Filter by Learning Outcome ID', required=False, type=int),
             OpenApiParameter(name='program_outcome_id', description='Filter by Program Outcome ID', required=False, type=int),
-            OpenApiParameter(name='is_approved', description='Filter by approval status (true/false)', required=False, type=bool),
+            OpenApiParameter(name='approval_status', description='Filter by approval status (PENDING/APPROVED/DECLINED)', required=False, type=str),
             OpenApiParameter(name='course_template_id', description='Filter by Course Template ID', required=False, type=int),
+            OpenApiParameter(name='show_declined', description='Show declined items (for department head override)', required=False, type=bool),
         ]
     )
     def list(self, request, *args, **kwargs):
@@ -166,7 +178,11 @@ class LOToPOContributionViewSet(ModelViewSet):
         """
         Filter contributions by query parameters and user role.
         """
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().select_related(
+            'learning_outcome', 'learning_outcome__course_template',
+            'program_outcome', 'program_outcome__department',
+            'approved_by'
+        )
         user = self.request.user
         
         # Query parameter filters
@@ -178,14 +194,36 @@ class LOToPOContributionViewSet(ModelViewSet):
         if program_outcome_id:
             queryset = queryset.filter(program_outcome_id=program_outcome_id)
         
+        approval_status_param = self.request.query_params.get('approval_status')
+        if approval_status_param:
+            queryset = queryset.filter(approval_status=approval_status_param.upper())
+        
+        # Backward compatibility for is_approved parameter
         is_approved_param = self.request.query_params.get('is_approved')
         if is_approved_param is not None:
             is_approved = is_approved_param.lower() in ['true', '1', 'yes']
-            queryset = queryset.filter(is_approved=is_approved)
+            if is_approved:
+                queryset = queryset.filter(approval_status='APPROVED')
+            else:
+                queryset = queryset.filter(approval_status__in=['PENDING', 'DECLINED'])
         
         course_template_id = self.request.query_params.get('course_template_id')
         if course_template_id:
             queryset = queryset.filter(learning_outcome__course_template_id=course_template_id)
+        
+        # Department head override: show declined items
+        show_declined_param = self.request.query_params.get('show_declined')
+        if show_declined_param and show_declined_param.lower() in ['true', '1', 'yes']:
+            if user.is_department_head():
+                # Department heads can see all items including declined
+                pass
+            else:
+                # Non-department heads cannot see declined items
+                queryset = queryset.exclude(approval_status='DECLINED')
+        else:
+            # Default behavior: hide declined items for non-department heads
+            if not user.is_department_head() and not user.is_staff:
+                queryset = queryset.exclude(approval_status='DECLINED')
         
         # Role-based filtering
         if user.is_department_head() or user.is_staff:
@@ -197,41 +235,73 @@ class LOToPOContributionViewSet(ModelViewSet):
             
         return queryset
 
+    def perform_create(self, serializer):
+        """Validate that instructor teaches the course for this LO contribution."""
+        user = self.request.user
+        learning_outcome = serializer.validated_data.get('learning_outcome')
+        
+        if user.is_instructor():
+            # Check if instructor teaches any instance of this course template
+            has_access = learning_outcome.course_template.instances.filter(instructor=user).exists()
+            if not has_access:
+                raise serializers.ValidationError(
+                    "You can only create contributions for courses you teach."
+                )
+        
+        serializer.save()
+
+    @extend_schema(
+        request=LOtoPOApprovalActionSerializer,
+        responses={200: LOtoPOContributionDetailSerializer},
+        summary="Perform approval action on LO-PO contribution",
+        description="Approve, decline, or reset to pending a LO-PO contribution. Department heads only.",
+        tags=["lo-po-contributions"]
+    )
     @action(detail=True, methods=['post'])
-    def approve(self, request, pk=None):
+    def approval_action(self, request, pk=None):
         """
-        Approve the contribution (Dept Head only).
+        Perform approval action (approve/decline/reset) on the contribution.
+        Department heads only.
         """
         contribution = self.get_object()
         user = request.user
         
+        serializer = LOtoPOApprovalActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        action = serializer.validated_data['action']
+        reason = serializer.validated_data.get('reason')
+        
         try:
-            contribution.approve(user)
-            serializer = self.get_serializer(contribution)
-            return Response(serializer.data)
+            if action == 'approve':
+                contribution.approve(user)
+            elif action == 'decline':
+                contribution.decline(user, reason)
+            elif action == 'reset_to_pending':
+                contribution.reset_to_pending(user)
+            else:
+                return Response(
+                    {"detail": f"Invalid action: {action}"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            response_serializer = LOtoPOContributionDetailSerializer(contribution)
+            return Response(response_serializer.data)
+            
         except PermissionError as e:
             return Response({"detail": str(e)}, status=status.HTTP_403_FORBIDDEN)
 
-    @action(detail=True, methods=['post'])
-    def reject(self, request, pk=None):
+    @extend_schema(
+        responses={200: LOtoPOContributionListSerializer(many=True)},
+        summary="Get declined contributions",
+        description="List all declined LO-PO contributions for department head review.",
+        tags=["lo-po-contributions"]
+    )
+    @action(detail=False, methods=['get'], permission_classes=[IsDepartmentHead | IsAdminUser])
+    def declined(self, request):
         """
-        Reject the contribution (Dept Head only).
-        Sets is_approved=False and approved_by=User.
+        List all declined contributions for department head review.
         """
-        contribution = self.get_object()
-        user = request.user
-        
-        if not user.is_department_head():
-            return Response(
-                {"detail": "Only department heads can reject LO-PO contributions."}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-            
-        consumption = contribution # Just alias
-        contribution.is_approved = False
-        contribution.approved_by = user
-        contribution.approved_at = timezone.now()
-        contribution.save()
-        
-        serializer = self.get_serializer(contribution)
+        queryset = self.get_queryset().filter(approval_status='DECLINED')
+        serializer = LOtoPOContributionListSerializer(queryset, many=True)
         return Response(serializer.data)

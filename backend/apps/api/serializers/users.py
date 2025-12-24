@@ -247,3 +247,13 @@ class BulkStudentDeleteSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"Student IDs not found: {list(missing)}")
         
         return student_ids
+
+
+class GPASerializer(serializers.Serializer):
+    """Serializer for GPA information."""
+    gpa = serializers.DecimalField(max_digits=4, decimal_places=2)
+    total_credits = serializers.IntegerField()
+    course_details = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="Breakdown of completed courses and points"
+    )

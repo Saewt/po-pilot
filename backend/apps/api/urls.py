@@ -20,6 +20,7 @@ from apps.api.views.users import MeView, UserViewSet
 from apps.notifications.views import NotificationViewSet
 
 from apps.api.views.announcements import CourseAnnouncementViewSet, DepartmentAnnouncementViewSet
+from apps.api.views.achievements import AchievementViewSet
 
 router = DefaultRouter()
 router.register(r"departments", DepartmentViewSet, basename="department")
@@ -35,6 +36,7 @@ router.register(r"assessment-lo-contributions", AssessmentToLOContributionViewSe
 router.register(r"notifications", NotificationViewSet, basename="notification")
 router.register(r"announcements", CourseAnnouncementViewSet, basename="announcement")
 router.register(r"department-announcements", DepartmentAnnouncementViewSet, basename="department-announcement")
+router.register(r"achievements", AchievementViewSet, basename="achievement")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
