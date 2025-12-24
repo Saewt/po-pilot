@@ -6,10 +6,6 @@ import ErrorState from '../../components/ErrorState'
 import DataTable from '../../components/DataTable'
 import '../../styles/pages.css'
 
-/**
- * Instructor Home Page
- * Shows list of courses the instructor teaches
- */
 const InstructorHome = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -34,55 +30,71 @@ const InstructorHome = () => {
     }
   }
 
-  if (loading) {
-    return <LoadingState />
-  }
-
-  if (error) {
-    return <ErrorState error={error} onRetry={loadCourses} />
-  }
+  if (loading) return <LoadingState />
+  if (error) return <ErrorState error={error} onRetry={loadCourses} />
 
   const columns = [
-    { header: 'Course Code', accessor: 'get_full_code' },
-    {
-      header: 'Course Name',
-      accessor: 'course_template',
-      render: (row) => {
-        const template = typeof row.course_template === 'object'
-          ? row.course_template
-          : null
-        return template?.name || 'N/A'
-      }
+    { 
+      header: 'Course',
+      accessor: 'full_code',
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: '600', color: '#1976d2' }}>
+            {row.full_code || row.course_template?.code || 'N/A'}
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#666' }}>
+            {row.course_name || row.course_template?.name || 'N/A'}
+          </div>
+        </div>
+      )
     },
     { header: 'Semester', accessor: 'semester' },
     { header: 'Year', accessor: 'year' },
     {
       header: 'Students',
       accessor: 'students_count',
-      render: (row) => row.students_count || (row.students?.length || 0)
+      render: (row) => (
+        <span className="badge" style={{ background: '#dbeafe', color: '#1e40af' }}>
+            {row.students_count || (row.students?.length || 0)} Enrolled
+        </span>
+      )
     },
     {
       header: 'Actions',
       accessor: 'id',
       render: (row) => (
-        <div className="action-buttons">
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             onClick={(e) => {
               e.stopPropagation()
               navigate(`/app/instructor/courses/${row.id}/lo-po`)
             }}
-            className="btn btn-primary"
-            style={{ fontSize: '0.875rem', padding: 'var(--spacing-xs) var(--spacing-sm)' }}
+            style={{
+                padding: '0.25rem 0.75rem',
+                fontSize: '0.875rem',
+                backgroundColor: '#e3f2fd',
+                color: '#1565c0',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+            }}
           >
-            LO-PO
+            Outcomes
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation()
               navigate(`/app/instructor/courses/${row.id}/students`)
             }}
-            className="btn btn-primary"
-            style={{ fontSize: '0.875rem', padding: 'var(--spacing-xs) var(--spacing-sm)' }}
+            style={{
+                padding: '0.25rem 0.75rem',
+                fontSize: '0.875rem',
+                backgroundColor: '#f3e5f5',
+                color: '#7b1fa2',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+            }}
           >
             Students
           </button>
@@ -93,12 +105,17 @@ const InstructorHome = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">Instructor Home</h1>
-      <p className="text-secondary" style={{ marginBottom: 'var(--spacing-md)' }}>Courses you are teaching:</p>
-      <DataTable columns={columns} data={courses} />
+      <h1 className="page-title">Instructor Dashboard</h1>
+      <div className="info-card" style={{ marginBottom: '2rem' }}>
+        <p>Welcome back! Here are your active courses for this semester.</p>
+      </div>
+      
+      <div>
+        <h2 className="section-title">My Courses</h2>
+        <DataTable columns={columns} data={courses} />
+      </div>
     </div>
   )
 }
 
 export default InstructorHome
-

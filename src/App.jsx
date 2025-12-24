@@ -314,14 +314,17 @@ const AppRoutes = () => {
 }
 
 import { ToastProvider } from './context/ToastContext'
+import { NotificationProvider } from './context/NotificationContext'
 import ToastContainer from './components/ToastContainer'
 
 const App = () => {
   return (
     <AuthProvider>
       <ToastProvider>
-        <AppRoutes />
-        <ToastContainer />
+        <NotificationProvider>
+          <AppRoutes />
+          <ToastContainer />
+        </NotificationProvider>
       </ToastProvider>
     </AuthProvider>
   )

@@ -8,10 +8,6 @@ import CsvUpload from '../../components/CsvUpload'
 import DataTable from '../../components/DataTable'
 import '../../styles/pages.css'
 
-/**
- * Instructor Grades Page
- * Board for entering grades (CSV upload preferred, manual fallback)
- */
 const InstructorGrades = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -42,7 +38,6 @@ const InstructorGrades = () => {
       setGrades(gradesRes.results || [])
       setCourses(coursesRes.results || [])
 
-      // Extract all students from courses
       const allStudents = []
       coursesRes.results?.forEach(course => {
         if (course.students && Array.isArray(course.students)) {
@@ -68,8 +63,6 @@ const InstructorGrades = () => {
       setLoading(true)
       setError(null)
 
-      // Process each row from CSV
-      // Expected format: assessment_id, student_id, score
       for (const row of rows) {
         const assessmentId = parseInt(row.assessment_id || row.assessment)
         const studentId = parseInt(row.student_id || row.student)
@@ -80,7 +73,6 @@ const InstructorGrades = () => {
           continue
         }
 
-        // Check if grade already exists
         const existingGrade = grades.find(
           g => g.assessment === assessmentId && g.student === studentId
         )
@@ -92,17 +84,13 @@ const InstructorGrades = () => {
         }
 
         if (existingGrade) {
-          // Update existing grade
           await gradesAPI.patch(existingGrade.id, gradeData)
         } else {
-          // Create new grade
           await gradesAPI.create(gradeData)
         }
       }
 
-      // Reload grades
       await loadData()
-
       alert('Grades uploaded successfully!')
     } catch (err) {
       console.error('Failed to upload grades:', err)
@@ -126,7 +114,6 @@ const InstructorGrades = () => {
       const studentId = parseInt(selectedStudent)
       const scoreValue = parseFloat(score)
 
-      // Check if grade already exists
       const existingGrade = grades.find(
         g => g.assessment === assessmentId && g.student === studentId
       )
@@ -143,14 +130,11 @@ const InstructorGrades = () => {
         await gradesAPI.create(gradeData)
       }
 
-      // Reset form
       setSelectedAssessment('')
       setSelectedStudent('')
       setScore('')
 
-      // Reload grades
       await loadData()
-
       alert('Grade saved successfully!')
     } catch (err) {
       console.error('Failed to save grade:', err)
@@ -201,65 +185,70 @@ const InstructorGrades = () => {
 
       {error && <ErrorState error={error} />}
 
-      {/* CSV Upload */}
-      <div className="form-section">
-        <h2>CSV Upload</h2>
-        <p className="text-secondary">Upload CSV file with columns: assessment_id, student_id, score</p>
-        <CsvUpload onUpload={handleCsvUpload} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+          <div className="info-card">
+            <h2 className="section-title">CSV Upload</h2>
+            <p className="text-secondary" style={{ marginBottom: '1rem' }}>
+                Upload CSV file with columns: <code>assessment_id</code>, <code>student_id</code>, <code>score</code>
+            </p>
+            <CsvUpload onUpload={handleCsvUpload} />
+          </div>
+
+          <div className="info-card">
+            <h2 className="section-title">Manual Entry</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group">
+                <label>Assessment</label>
+                <select
+                  value={selectedAssessment}
+                  onChange={(e) => setSelectedAssessment(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                >
+                  <option value="">Select assessment</option>
+                  {assessments.map(assessment => (
+                    <option key={assessment.id} value={assessment.id}>
+                      {assessment.name} ({assessment.course_instance})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Student</label>
+                <select
+                  value={selectedStudent}
+                  onChange={(e) => setSelectedStudent(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                >
+                  <option value="">Select student</option>
+                  {students.map(student => (
+                    <option key={student.id} value={student.id}>
+                      {student.first_name} {student.last_name} ({student.student_id || 'N/A'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Score</label>
+                <input
+                  type="number"
+                  value={score}
+                  onChange={(e) => setScore(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+              </div>
+              <button
+                onClick={handleManualSave}
+                disabled={loading}
+                className="btn btn-primary"
+                style={{ alignSelf: 'flex-end' }}
+              >
+                Save Grade
+              </button>
+            </div>
+          </div>
       </div>
 
-      {/* Manual Entry */}
-      <div className="form-section">
-        <h2>Manual Entry</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', maxWidth: '400px' }}>
-          <div className="form-group">
-            <label>Assessment:</label>
-            <select
-              value={selectedAssessment}
-              onChange={(e) => setSelectedAssessment(e.target.value)}
-            >
-              <option value="">Select assessment</option>
-              {assessments.map(assessment => (
-                <option key={assessment.id} value={assessment.id}>
-                  {assessment.name} ({assessment.course_instance})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Student:</label>
-            <select
-              value={selectedStudent}
-              onChange={(e) => setSelectedStudent(e.target.value)}
-            >
-              <option value="">Select student</option>
-              {students.map(student => (
-                <option key={student.id} value={student.id}>
-                  {student.first_name} {student.last_name} ({student.student_id || 'N/A'})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Score:</label>
-            <input
-              type="number"
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-            />
-          </div>
-          <button
-            onClick={handleManualSave}
-            disabled={loading}
-            className="btn btn-primary"
-          >
-            Save Grade
-          </button>
-        </div>
-      </div>
-
-      {/* Grades List */}
-      <div>
+      <div style={{ marginTop: '2rem' }}>
         <h2 className="section-title">All Grades</h2>
         <DataTable columns={gradeColumns} data={grades} />
       </div>
@@ -268,4 +257,3 @@ const InstructorGrades = () => {
 }
 
 export default InstructorGrades
-

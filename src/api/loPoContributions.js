@@ -1,9 +1,5 @@
 import http from './http'
 
-/**
- * LO-PO Contributions API
- * Based on /api/lo-po-contributions/ endpoints
- */
 export const loPoContributionsAPI = {
   list: async (params = {}) => {
     const response = await http.get('/lo-po-contributions/', { params })
@@ -34,15 +30,29 @@ export const loPoContributionsAPI = {
     await http.delete(`/lo-po-contributions/${id}/`)
   },
 
-  approve: async (id) => {
-    const response = await http.post(`/lo-po-contributions/${id}/approve/`, {})
+  approve: async (id, reason = '') => {
+    const response = await http.post(`/lo-po-contributions/${id}/approval_action/`, { 
+      action: 'approve',
+      reason: reason 
+    })
     return response.data
   },
 
-  reject: async (id) => {
-    const response = await http.post(`/lo-po-contributions/${id}/reject/`, {})
+  decline: async (id, reason) => {
+    const response = await http.post(`/lo-po-contributions/${id}/approval_action/`, { 
+      action: 'decline',
+      reason: reason
+    })
+    return response.data
+  },
+
+  getDeclined: async (params = {}) => {
+    const response = await http.get('/lo-po-contributions/declined/', { params })
+    return response.data
+  },
+
+  resetToPending: async (id) => {
+    const response = await http.post(`/lo-po-contributions/${id}/approval_action/`, { action: 'reset_to_pending' })
     return response.data
   },
 }
-
-

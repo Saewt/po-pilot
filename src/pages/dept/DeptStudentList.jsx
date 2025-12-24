@@ -8,6 +8,7 @@ import LoadingState from '../../components/LoadingState'
 import ErrorState from '../../components/ErrorState'
 import FileUploadModal from '../../components/FileUploadModal'
 import ConfirmationModal from '../../components/ConfirmationModal'
+import DeptStudentsToolbar from '../../components/DeptStudentsToolbar'
 import '../../styles/pages.css'
 
 /**
@@ -266,53 +267,11 @@ const DeptStudentList = () => {
             </div>
 
             {/* Filters */}
-            <div className="info-card" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', padding: '1rem', alignItems: 'flex-end', background: '#f8f9fa' }}>
-                <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-                    <label style={{ fontSize: '0.85rem' }}>Student ID</label>
-                    <input
-                        type="text"
-                        value={filters.student_id}
-                        onChange={e => setFilters({ ...filters, student_id: e.target.value })}
-                        placeholder="Filter by ID..."
-                        style={{ padding: '0.5rem', width: '100%' }}
-                    />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-                    <label style={{ fontSize: '0.85rem' }}>Name</label>
-                    <input
-                        type="text"
-                        value={filters.name}
-                        onChange={e => setFilters({ ...filters, name: e.target.value })}
-                        placeholder="Filter by Name..."
-                        style={{ padding: '0.5rem', width: '100%' }}
-                    />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-                    <label style={{ fontSize: '0.85rem' }}>Email</label>
-                    <input
-                        type="text"
-                        value={filters.email}
-                        onChange={e => setFilters({ ...filters, email: e.target.value })}
-                        placeholder="Filter by Email..."
-                        style={{ padding: '0.5rem', width: '100%' }}
-                    />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
-                    <label style={{ fontSize: '0.85rem' }}>Enrollment Year</label>
-                    <input
-                        type="text"
-                        value={filters.enrollment_year}
-                        onChange={e => setFilters({ ...filters, enrollment_year: e.target.value })}
-                        placeholder="2024"
-                        style={{ padding: '0.5rem', width: '100%' }}
-                    />
-                </div>
-                <div style={{ marginBottom: 2 }}>
-                    <button className="btn btn-sm btn-secondary" onClick={() => setFilters({ student_id: '', name: '', email: '', enrollment_year: '' })}>
-                        Clear
-                    </button>
-                </div>
-            </div>
+            <DeptStudentsToolbar
+                filters={filters}
+                onFilterChange={(field, value) => setFilters(prev => ({ ...prev, [field]: value }))}
+                onReset={() => setFilters({ student_id: '', name: '', email: '', enrollment_year: '' })}
+            />
 
             <div className="info-card" style={{ marginTop: '1rem' }}>
                 <p>

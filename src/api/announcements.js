@@ -17,12 +17,42 @@ export const announcementsAPI = {
     },
 
     update: async (id, data) => {
+        const response = await http.put(`/department-announcements/${id}/`, data)
+        return response.data
+    },
+
+    patch: async (id, data) => {
         const response = await http.patch(`/department-announcements/${id}/`, data)
         return response.data
     },
 
     delete: async (id) => {
-        const response = await http.delete(`/department-announcements/${id}/`)
+        await http.delete(`/department-announcements/${id}/`)
+        return true
+    },
+
+    listCourseAnnouncements: async (params = {}) => {
+        const response = await http.get('/announcements/', { params })
         return response.data
+    },
+
+    createCourseAnnouncement: async (data) => {
+        const response = await http.post('/announcements/', data)
+        return response.data
+    },
+
+    updateCourseAnnouncement: async (id, data) => {
+        const response = await http.put(`/announcements/${id}/`, data)
+        return response.data
+    },
+
+    patchCourseAnnouncement: async (id, data) => {
+        const response = await http.patch(`/announcements/${id}/`, data)
+        return response.data
+    },
+
+    deleteCourseAnnouncement: async (id) => {
+        await http.delete(`/announcements/${id}/`)
+        return true
     }
 }

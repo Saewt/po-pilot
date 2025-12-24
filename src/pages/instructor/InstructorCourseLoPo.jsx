@@ -5,12 +5,9 @@ import { learningOutcomesAPI } from '../../api/learningOutcomes'
 import { loPoContributionsAPI } from '../../api/loPoContributions'
 import LoadingState from '../../components/LoadingState'
 import ErrorState from '../../components/ErrorState'
+import DataTable from '../../components/DataTable'
 import '../../styles/pages.css'
 
-/**
- * Instructor Course LO-PO Page
- * Shows LO-PO mapping for a course (read-only)
- */
 const InstructorCourseLoPo = () => {
   const { courseId } = useParams()
   const [loading, setLoading] = useState(true)
@@ -78,56 +75,80 @@ const InstructorCourseLoPo = () => {
 
   return (
     <div className="page-container">
-      <h1 className="page-title">LO-PO Mapping: {course.get_full_code} - {courseName}</h1>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 className="page-title" style={{ marginBottom: '0.5rem' }}>{course.full_code || course.code} - {courseName}</h1>
+        <p className="page-subtitle">Learning Outcome - Program Outcome Mapping</p>
+      </div>
 
       {loPoMapping.length === 0 ? (
-        <p className="text-secondary">No LO-PO mapping available for this course.</p>
+        <div className="empty-state" style={{ textAlign: 'center', padding: '3rem', background: '#f9f9f9' }}>
+            <p className="text-secondary">No LO-PO mapping available for this course.</p>
+        </div>
       ) : (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {loPoMapping.map((item, idx) => {
             const lo = item.lo
             const contributions = item.contributions
 
             return (
-              <div key={idx} className="card" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <h3 className="section-subtitle">{lo.code}: {lo.description}</h3>
-                {contributions.length === 0 ? (
-                  <p className="text-secondary">No PO contributions</p>
-                ) : (
-                  <div className="data-table-wrapper" style={{ marginTop: 'var(--spacing-md)' }}>
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>PO Code</th>
-                          <th>PO Description</th>
-                          <th>Weight</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {contributions.map((contrib, cIdx) => {
-                          const po = typeof contrib.program_outcome === 'object'
-                            ? contrib.program_outcome
-                            : null
+              <div key={idx} className="info-card" style={{ padding: '0', overflow: 'hidden' }}>
+                <div style={{ 
+                    padding: '1rem 1.5rem', 
+                    borderBottom: '1px solid #e2e8f0', 
+                    background: '#f8fafc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                }}>
+                    <span style={{ 
+                        fontWeight: 700, 
+                        color: '#334155', 
+                        background: '#e2e8f0', 
+                        padding: '4px 8px', 
+                        borderRadius: '4px',
+                        fontSize: '0.9rem'
+                    }}>
+                        {lo.full_code || lo.code}
+                    </span>
+                    <h3 style={{ margin: 0, fontSize: '1rem', color: '#1e293b', fontWeight: 500 }}>
+                        {lo.description}
+                    </h3>
+                </div>
 
-                          return (
-                            <tr key={cIdx}>
-                              <td>{po?.get_full_code || po?.code || 'N/A'}</td>
-                              <td>{po?.description || 'N/A'}</td>
-                              <td>{contrib.weight || '0'}</td>
-                              <td>
-                                {contrib.is_approved ? (
-                                  <span className="badge badge-approved">Approved</span>
-                                ) : (
-                                  <span className="badge badge-pending">Pending</span>
-                                )}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                {contributions.length === 0 ? (
+                  <div style={{ padding: '1.5rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                      No Program Outcome contributions defined.
                   </div>
+                ) : (
+                  <DataTable
+                    columns={[
+                        { 
+                            header: 'PO Code', 
+                            accessor: 'program_outcome', 
+                            render: r => {
+                                const po = r.program_outcome
+                                return <span style={{ fontWeight: 600 }}>{po?.full_code || po?.code || 'N/A'}</span>
+                            }
+                        },
+                        { 
+                            header: 'Description', 
+                            accessor: 'program_outcome', 
+                            render: r => r.program_outcome?.description || 'N/A'
+                        },
+                        { header: 'Weight', accessor: 'weight' },
+                        { 
+                            header: 'Status', 
+                            accessor: 'approval_status', 
+                            render: r => {
+                                if (r.approval_status === 'APPROVED') return <span className="badge badge-approved">Approved</span>
+                                if (r.approval_status === 'DECLINED') return <span className="badge badge-error">Declined</span>
+                                return <span className="badge badge-pending">Pending</span>
+                            }
+                        }
+                    ]}
+                    data={contributions}
+                    pagination={false}
+                  />
                 )}
               </div>
             )
@@ -139,4 +160,3 @@ const InstructorCourseLoPo = () => {
 }
 
 export default InstructorCourseLoPo
-

@@ -4,12 +4,12 @@ import { usersAPI } from '../api/users'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 
-const CourseManagerModal = ({ onClose, onCourseCreated }) => {
+const CourseManagerModal = ({ onClose, onCourseCreated, editInstance = null }) => {
     const { user } = useAuth()
     const { addToast } = useToast()
 
-    // Modes: 'select_template', 'create_template', 'create_instance'
-    const [mode, setMode] = useState('select_template')
+    // Modes: 'select_template', 'create_template', 'create_instance', 'edit_instance'
+    const [mode, setMode] = useState(editInstance ? 'edit_instance' : 'select_template')
     const [loading, setLoading] = useState(false)
     const [templates, setTemplates] = useState([])
     const [instructors, setInstructors] = useState([])
@@ -35,7 +35,14 @@ const CourseManagerModal = ({ onClose, onCourseCreated }) => {
     // Load initial data
     useEffect(() => {
         loadData()
-    }, [])
+        if (editInstance) {
+            setInstanceForm({
+                semester: editInstance.semester,
+                year: editInstance.year,
+                instructor_id: editInstance.instructor?.id || ''
+            })
+        }
+    }, [editInstance])
 
     const loadData = async () => {
         setLoading(true)
@@ -114,6 +121,31 @@ const CourseManagerModal = ({ onClose, onCourseCreated }) => {
         } catch (err) {
             console.error('Create instance error:', err)
             addToast(err.response?.data?.detail || 'Failed to open course session', 'error')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleUpdateInstance = async (e) => {
+        e.preventDefault()
+        if (!editInstance) return
+
+        setLoading(true)
+        try {
+            // Check if update method exists on API, if not fallback to put/patch
+            const updateFn = coursesAPI.update || coursesAPI.patch
+            await updateFn(editInstance.id, {
+                semester: instanceForm.semester,
+                year: parseInt(instanceForm.year),
+                instructor: instanceForm.instructor_id || null,
+                course_template_id: editInstance.course_template.id
+            })
+            addToast('Course session updated successfully', 'success')
+            onCourseCreated()
+            onClose()
+        } catch (err) {
+            console.error('Update instance error:', err)
+            addToast(err.response?.data?.detail || 'Failed to update course session', 'error')
         } finally {
             setLoading(false)
         }
@@ -323,12 +355,63 @@ const CourseManagerModal = ({ onClose, onCourseCreated }) => {
         </div>
     )
 
+    const renderEditInstance = () => (
+        <div className="step-container">
+            <h3>Edit Session: {editInstance?.full_code || editInstance?.course_template?.name}</h3>
+            <form onSubmit={handleUpdateInstance}>
+                <div className="form-group">
+                    <label>Semester</label>
+                    <select
+                        value={instanceForm.semester}
+                        onChange={e => setInstanceForm({ ...instanceForm, semester: e.target.value })}
+                    >
+                        <option value="FALL">Fall</option>
+                        <option value="SPRING">Spring</option>
+                        <option value="SUMMER">Summer</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Year</label>
+                    <input
+                        type="number"
+                        required
+                        value={instanceForm.year}
+                        onChange={e => setInstanceForm({ ...instanceForm, year: e.target.value })}
+                    />
+                </div>
+                <div className="form-group">
+                    <label>Instructor</label>
+                    <select
+                        value={instanceForm.instructor_id}
+                        onChange={e => setInstanceForm({ ...instanceForm, instructor_id: e.target.value })}
+                    >
+                        <option value="">-- Not Assigned --</option>
+                        {instructors.map(inst => (
+                            <option key={inst.id} value={inst.id}>
+                                {inst.first_name} {inst.last_name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="modal-actions">
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>
+                        Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    )
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '100%' }}>
                 {mode === 'select_template' && renderSelectTemplate()}
                 {mode === 'create_template' && renderCreateTemplate()}
                 {mode === 'create_instance' && renderCreateInstance()}
+                {mode === 'edit_instance' && renderEditInstance()}
                 {mode === 'delete_confirmation' && renderDeleteConfirmation()}
             </div>
         </div>

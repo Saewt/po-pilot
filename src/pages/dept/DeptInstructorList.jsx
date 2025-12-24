@@ -5,12 +5,9 @@ import { useToast } from '../../context/ToastContext'
 import DataTable from '../../components/DataTable'
 import LoadingState from '../../components/LoadingState'
 import ErrorState from '../../components/ErrorState'
+import DeptInstructorsToolbar from '../../components/DeptInstructorsToolbar'
 import '../../styles/pages.css'
 
-/**
- * Page: Department Instructor List
- * Displays a list of instructors in the department
- */
 const DeptInstructorList = () => {
     const { user } = useAuth()
     const { addToast } = useToast()
@@ -18,7 +15,11 @@ const DeptInstructorList = () => {
     const [error, setError] = useState(null)
     const [instructors, setInstructors] = useState([])
 
-    // Registration State
+    const [filters, setFilters] = useState({
+        name: '',
+        email: ''
+    })
+
     const [showRegister, setShowRegister] = useState(false)
     const [regData, setRegData] = useState({
         first_name: '',
@@ -26,6 +27,7 @@ const DeptInstructorList = () => {
         email: '',
         role: 'INSTRUCTOR'
     })
+    const [regLoading, setRegLoading] = useState(false)
 
     useEffect(() => {
         loadInstructors()
@@ -38,7 +40,6 @@ const DeptInstructorList = () => {
                 role: 'INSTRUCTOR',
                 department: user.department
             })
-            // Handle pagination or direct array
             const data = response.results || response
             setInstructors(Array.isArray(data) ? data : [])
         } catch (err) {
@@ -57,13 +58,13 @@ const DeptInstructorList = () => {
         }
 
         try {
-            setLoading(true)
-            // Payload as requested: { email, first_name, last_name, role }
+            setRegLoading(true)
             await usersAPI.create({
                 email: regData.email,
                 first_name: regData.first_name,
                 last_name: regData.last_name,
-                role: 'INSTRUCTOR'
+                role: 'INSTRUCTOR',
+                department: user.department
             })
             addToast('Instructor registered successfully', 'success')
             setShowRegister(false)
@@ -72,24 +73,43 @@ const DeptInstructorList = () => {
         } catch (err) {
             console.error('Registration failed:', err)
             const errorData = err.response?.data || {}
-            const errorMessage = errorData.detail ||
-                Object.entries(errorData)
-                    .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(' ') : val}`)
-                    .join('\n') ||
-                'Failed to register instructor'
+            const errorMessage = errorData.detail || 'Failed to register instructor'
             addToast(errorMessage, 'error')
         } finally {
-            setLoading(false)
+            setRegLoading(false)
         }
     }
+
+    const filteredInstructors = instructors.filter(inst => {
+        const fullName = `${inst.first_name || ''} ${inst.last_name || ''}`.toLowerCase()
+        const matchName = fullName.includes(filters.name.toLowerCase())
+        const matchEmail = inst.email?.toLowerCase().includes(filters.email.toLowerCase())
+        return matchName && matchEmail
+    })
 
     const columns = [
         {
             header: 'Name',
             accessor: 'first_name',
-            render: (row) => `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+            render: (row) => (
+                <div style={{ fontWeight: 500, color: '#1e293b' }}>
+                    {`${row.first_name || ''} ${row.last_name || ''}`.trim()}
+                </div>
+            ),
         },
-        { header: 'Email', accessor: 'email' },
+        { 
+            header: 'Email', 
+            accessor: 'email',
+            render: (row) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#64748b' }}>
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    {row.email}
+                </div>
+            )
+        },
     ]
 
     if (loading && instructors.length === 0 && !showRegister) return <LoadingState />
@@ -97,71 +117,90 @@ const DeptInstructorList = () => {
 
     return (
         <div className="page-container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h1 className="page-title">Instructors</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button
                         className="btn btn-primary"
                         onClick={() => setShowRegister(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
+                        <span style={{ fontSize: '1.2rem', lineHeight: '1' }}>+</span>
                         Register Instructor
-                    </button>
-                    <button className="btn btn-secondary" onClick={loadInstructors}>
-                        Refresh
                     </button>
                 </div>
             </div>
 
-            <div className="info-card">
-                <p>List of all instructors in your department.</p>
-                <strong>Created instructor password are generated automatically. by default name and surname are used as password.</strong>
+            <DeptInstructorsToolbar
+                filters={filters}
+                onFilterChange={(field, value) => setFilters(prev => ({ ...prev, [field]: value }))}
+                onReset={() => setFilters({ name: '', email: '' })}
+            />
+
+            <div className="info-card" style={{ marginTop: '1rem', background: '#e0f2fe', border: '1px solid #bae6fd', color: '#0369a1' }}>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <div>
+                        <strong>Note:</strong> Created instructor passwords are generated automatically. By default, "FirstName+LastName" is used as the password.
+                    </div>
+                </div>
             </div>
 
             <DataTable
                 columns={columns}
-                data={instructors}
-                emptyMessage="No instructors found in this department."
+                data={filteredInstructors}
+                emptyMessage="No instructors found."
             />
 
-            {/* Registration Modal */}
             {showRegister && (
                 <div className="modal-overlay" onClick={() => setShowRegister(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h3 className="modal-title">Register New Instructor</h3>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <div style={{ paddingBottom: '1rem', borderBottom: '1px solid #eee', marginBottom: '1.5rem' }}>
+                            <h3 className="modal-title" style={{ margin: 0 }}>Register New Instructor</h3>
+                        </div>
+                        
                         <form onSubmit={handleRegister}>
                             <div className="form-group">
-                                <label>First Name:</label>
+                                <label>First Name</label>
                                 <input
                                     type="text"
                                     value={regData.first_name}
                                     onChange={e => setRegData({ ...regData, first_name: e.target.value })}
                                     required
+                                    style={{ fontSize: '1rem', padding: '0.6rem' }}
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Last Name:</label>
+                                <label>Last Name</label>
                                 <input
                                     type="text"
                                     value={regData.last_name}
                                     onChange={e => setRegData({ ...regData, last_name: e.target.value })}
                                     required
+                                    style={{ fontSize: '1rem', padding: '0.6rem' }}
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Email:</label>
+                                <label>Email Address</label>
                                 <input
                                     type="email"
                                     value={regData.email}
                                     onChange={e => setRegData({ ...regData, email: e.target.value })}
                                     required
+                                    style={{ fontSize: '1rem', padding: '0.6rem' }}
                                 />
                             </div>
-                            <div className="modal-actions">
+                            
+                            <div className="modal-actions" style={{ marginTop: '2rem' }}>
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowRegister(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary" disabled={loading}>
-                                    Register
+                                <button type="submit" className="btn btn-primary" disabled={regLoading}>
+                                    {regLoading ? 'Registering...' : 'Register Instructor'}
                                 </button>
                             </div>
                         </form>

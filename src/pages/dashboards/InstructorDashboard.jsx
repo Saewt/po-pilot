@@ -3,32 +3,23 @@ import { useAuth } from '../../context/AuthContext'
 import { coursesAPI } from '../../api/courses'
 import { coreAPI } from '../../api/core'
 import { useMultipleAsync } from '../../hooks/useAsync'
-import StatusBlock from '../../components/StatusBlock'
-import LoadingSkeleton from '../../components/LoadingSkeleton'
-import '../Dashboard.css'
+import LoadingState from '../../components/LoadingState'
+import ErrorState from '../../components/ErrorState'
+import '../../styles/pages.css'
 
-/**
- * Instructor Dashboard (PO/LO aligned)
- * Focus: course instances + LO→PO contribution workflow status
- * Data:
- * - /api/course-instances/ (taught courses, filtered by backend)
- * - /api/lo-po-contributions/ (mappings + approval status, filtered by backend)
- * - /api/assessments/ (optional; kept for course mgmt, not grades)
- */
 const InstructorDashboard = ({ user }) => {
   const { logout } = useAuth()
 
   const { data, loading, error, refetch } = useMultipleAsync(
     {
       courses: () => coursesAPI.listInstances(),
-      assessments: () => coursesAPI.listAssessments(), // optional but useful
+      assessments: () => coursesAPI.listAssessments(),
       contributions: () => coreAPI.listLOToPOContributions(),
     },
     [],
     true
   )
 
-  // Normalize list for DRF pagination / axios shapes
   const normalizeList = (value) => {
     const v = value?.data ?? value
     if (Array.isArray(v)) return v
@@ -40,27 +31,15 @@ const InstructorDashboard = ({ user }) => {
   const assessments = normalizeList(data?.assessments)
   const contributions = normalizeList(data?.contributions)
 
-  const handleLogout = async () => {
-    await logout()
-    window.location.href = '/login'
-  }
-
   const activeCourses = courses.filter((c) => c?.is_active !== false)
 
-  // Helper: infer contribution status. Backend might use different field names.
-  // We attempt common patterns safely.
   const getContributionStatus = (c) => {
-    // common fields:
-    // c.status: 'PENDING' | 'APPROVED' | 'REJECTED'
-    // c.is_approved: boolean
-    // c.approved: boolean
     if (typeof c?.status === 'string') return c.status.toUpperCase()
     if (c?.is_approved === true || c?.approved === true) return 'APPROVED'
     if (c?.is_approved === false || c?.approved === false) return 'PENDING'
     return 'PENDING'
   }
 
-  // Group contributions by course_instance if possible
   const contributionsByCourseId = contributions.reduce((acc, c) => {
     const courseId =
       c?.course_instance?.id ??
@@ -75,222 +54,247 @@ const InstructorDashboard = ({ user }) => {
     return acc
   }, {})
 
-  // Dashboard-level stats
   const totalAssessments = assessments.length
   const totalContrib = contributions.length
   const pendingContrib = contributions.filter((c) => getContributionStatus(c) === 'PENDING').length
   const approvedContrib = contributions.filter((c) => getContributionStatus(c) === 'APPROVED').length
 
-  // Full-page loading
   if (loading && courses.length === 0 && contributions.length === 0 && assessments.length === 0) {
-    return (
-      <div className="dashboard-container">
-        <div className="dashboard-header">
-          <h1>Instructor Dashboard</h1>
-        </div>
-        <div className="dashboard-content">
-          <StatusBlock type="loading" message="Loading your dashboard..." />
-        </div>
-      </div>
-    )
+    return <LoadingState />
   }
 
-  // Full-page error (only if we have nothing to show)
   if (error && courses.length === 0 && contributions.length === 0 && assessments.length === 0) {
-    return (
-      <div className="dashboard-container">
-        <div className="dashboard-header">
-          <h1>Instructor Dashboard</h1>
-          <button className="logout-btn" onClick={handleLogout}>Logout</button>
-        </div>
-        <div className="dashboard-content">
-          <StatusBlock type="error" message={error} onRetry={refetch} />
-        </div>
-      </div>
-    )
+    return <ErrorState error={error} onRetry={refetch} />
   }
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>Instructor Dashboard</h1>
-        <div className="user-info">
-          <div className="user-details">
-            <div className="user-name">
-              {user?.first_name} {user?.last_name}
-            </div>
-            <div className="user-role">Instructor</div>
-          </div>
-          <button className="logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
+    <div className="page-container">
+      
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+        gap: '1.5rem', 
+        marginBottom: '2rem' 
+      }}>
+        <div className="info-card" style={{ textAlign: 'center', padding: '1.5rem', marginBottom: 0 }}>
+          <h3 style={{ fontSize: '2.5rem', color: '#6366f1', margin: '0 0 0.5rem 0', fontWeight: 700 }}>
+             {activeCourses.length}
+          </h3>
+          <p style={{ margin: 0, color: '#64748b', fontWeight: 500 }}>Active Courses</p>
+        </div>
+        
+        <div className="info-card" style={{ textAlign: 'center', padding: '1.5rem', marginBottom: 0 }}>
+          <h3 style={{ fontSize: '2.5rem', color: '#8b5cf6', margin: '0 0 0.5rem 0', fontWeight: 700 }}>
+            {totalContrib}
+          </h3>
+          <p style={{ margin: 0, color: '#64748b', fontWeight: 500 }}>Total Contributions</p>
+        </div>
+
+        <div className="info-card" style={{ textAlign: 'center', padding: '1.5rem', marginBottom: 0 }}>
+          <h3 style={{ fontSize: '2.5rem', color: '#f59e0b', margin: '0 0 0.5rem 0', fontWeight: 700 }}>
+             {pendingContrib}
+          </h3>
+          <p style={{ margin: 0, color: '#64748b', fontWeight: 500 }}>Pending Approval</p>
+        </div>
+
+        <div className="info-card" style={{ textAlign: 'center', padding: '1.5rem', marginBottom: 0 }}>
+          <h3 style={{ fontSize: '2.5rem', color: '#10b981', margin: '0 0 0.5rem 0', fontWeight: 700 }}>
+             {approvedContrib}
+          </h3>
+          <p style={{ margin: 0, color: '#64748b', fontWeight: 500 }}>Approved</p>
         </div>
       </div>
 
-      <div className="dashboard-content">
-        {/* Profile Summary */}
-        <div className="dashboard-card profile-summary">
-          <h2>Profile Summary</h2>
-          <div className="profile-info">
-            <div className="profile-item">
-              <span className="profile-label">Name:</span>
-              <span className="profile-value">{user?.first_name} {user?.last_name}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem', alignItems: 'start' }}>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            <div className="info-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+                    <h2 className="section-title" style={{ margin: 0, fontSize: '1.25rem' }}>My Active Courses</h2>
+                </div>
+                <div style={{ padding: '0' }}>
+                    {activeCourses.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>
+                            You are not teaching any active courses.
+                        </div>
+                    ) : (
+                        <div>
+                            {activeCourses.map((course, idx) => {
+                                const courseId = course.id
+                                const courseContrib = contributionsByCourseId[courseId] || []
+                                const pending = courseContrib.filter((c) => getContributionStatus(c) === 'PENDING').length
+                                const approved = courseContrib.filter((c) => getContributionStatus(c) === 'APPROVED').length
+
+                                const termInfo = course.semester && course.year
+                                    ? `${course.semester} ${course.year}`
+                                    : course.semester || course.year || 'Term TBA'
+
+                                return (
+                                    <div key={course.id} style={{ 
+                                        padding: '1.5rem', 
+                                        borderBottom: idx < activeCourses.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>
+                                                        {course.get_full_code || course.course_template?.get_full_code || 'Course'}
+                                                    </h3>
+                                                    <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
+                                                        {termInfo}
+                                                    </span>
+                                                </div>
+                                                <div style={{ color: '#64748b', marginTop: '4px', fontSize: '0.9rem' }}>
+                                                    {course.course_template?.name || 'Course'}
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                 <Link
+                                                    to={`/app/instructor/courses/${course.id}/assessments`}
+                                                    className="btn"
+                                                    style={{ 
+                                                        background: '#eff6ff', 
+                                                        color: '#3b82f6', 
+                                                        border: 'none',
+                                                        padding: '0.5rem 1rem',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 500,
+                                                        textDecoration: 'none'
+                                                    }}
+                                                  >
+                                                    Manage Assessments
+                                                  </Link>
+                                                  <Link
+                                                    to={`/app/instructor/courses/${course.id}/lo-po`}
+                                                    className="btn"
+                                                    style={{ 
+                                                        background: '#f3e8ff', 
+                                                        color: '#9333ea', 
+                                                        border: 'none',
+                                                        padding: '0.5rem 1rem',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 500,
+                                                        textDecoration: 'none'
+                                                    }}
+                                                  >
+                                                    LO-PO Mappings
+                                                  </Link>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#64748b' }}>
+                                            <div>
+                                                <strong style={{ color: '#334155' }}>{course.students_count || 0}</strong> Students
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#334155' }}>{course.assessments_count || 0}</strong> Assessments
+                                            </div>
+                                            <div>
+                                                <strong style={{ color: '#334155' }}>{courseContrib.length}</strong> LO-PO Links
+                                                {courseContrib.length > 0 && (
+                                                    <span style={{ marginLeft: '6px', fontSize: '0.8rem' }}>
+                                                        (Pending: {pending} • Approved: {approved})
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className="profile-item">
-              <span className="profile-label">Email:</span>
-              <span className="profile-value">{user?.email}</span>
+            
+            <div className="info-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+                    <h2 className="section-title" style={{ margin: 0, fontSize: '1.25rem' }}>Recent Contributions</h2>
+                </div>
+                {contributions.length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                         No LO-PO contributions yet.
+                    </div>
+                ) : (
+                    <div>
+                         {contributions.slice(0, 5).map((c, idx) => {
+                            const status = getContributionStatus(c)
+                            const loLabel = c?.learning_outcome?.code || c?.learning_outcome?.name || 'LO'
+                            const poLabel = c?.program_outcome?.code || c?.program_outcome?.name || 'PO'
+                            const weight = c?.weight ?? c?.contribution ?? '—'
+                            
+                            let badgeStyle = { backgroundColor: '#fff3e0', color: '#e65100' }
+                            
+                            if (status === 'APPROVED') {
+                                badgeStyle = { backgroundColor: '#dcfce7', color: '#166534' }
+                            } else if (status === 'REJECTED' || status === 'DECLINED') {
+                                badgeStyle = { backgroundColor: '#fee2e2', color: '#991b1b' }
+                            }
+
+                            return (
+                                <div key={c.id} style={{ 
+                                    padding: '1rem 1.5rem', 
+                                    borderBottom: idx < 4 ? '1px solid #f1f5f9' : 'none',
+                                    display: 'flex', 
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <div>
+                                        <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.95rem' }}>
+                                            {loLabel} → {poLabel}
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
+                                            {c?.course_instance?.get_full_code || c?.course_instance?.course_template?.get_full_code}
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <span className="badge" style={{ 
+                                            padding: '4px 8px', 
+                                            borderRadius: '4px',
+                                            fontSize: '0.75rem',
+                                            ...badgeStyle
+                                        }}>
+                                            {status}
+                                        </span>
+                                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+                                            Weight: {weight}
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                         })}
+                    </div>
+                )}
             </div>
-            <div className="profile-item">
-              <span className="profile-label">Department:</span>
-              <span className="profile-value">{user?.department_name || 'N/A'}</span>
-            </div>
-            <div className="profile-item">
-              <span className="profile-label">Active Courses:</span>
-              <span className="profile-value">{user?.active_courses || activeCourses.length}</span>
-            </div>
-          </div>
+
         </div>
 
-        {/* Stats (PO/LO aligned) */}
-        <div className="dashboard-stats">
-          <div className="stat-card">
-            <h3>{activeCourses.length}</h3>
-            <p>Active Courses</p>
-          </div>
-          <div className="stat-card">
-            <h3>{totalContrib}</h3>
-            <p>LO→PO Contributions</p>
-          </div>
-          <div className="stat-card">
-            <h3>{pendingContrib}</h3>
-            <p>Pending Approval</p>
-          </div>
-          <div className="stat-card">
-            <h3>{approvedContrib}</h3>
-            <p>Approved</p>
-          </div>
-        </div>
-
-        {/* My Courses */}
-        <div className="dashboard-card">
-          <h2>My Active Courses</h2>
-
-          {loading ? (
-            <LoadingSkeleton lines={3} />
-          ) : error ? (
-            <StatusBlock type="error" message="Failed to load dashboard data" onRetry={refetch} />
-          ) : activeCourses.length === 0 ? (
-            <StatusBlock type="empty" message="You are not teaching any active courses." />
-          ) : (
-            <div className="courses-list">
-              {activeCourses.map((course) => {
-                const courseId = course.id
-                const courseContrib = contributionsByCourseId[courseId] || []
-
-                const pending = courseContrib.filter((c) => getContributionStatus(c) === 'PENDING').length
-                const approved = courseContrib.filter((c) => getContributionStatus(c) === 'APPROVED').length
-
-                const termInfo =
-                  course.semester && course.year
-                    ? `${course.semester} ${course.year}`
-                    : course.semester || course.year || 'Term TBA'
-
-                return (
-                  <div key={course.id} className="course-item">
-                    <div className="course-header">
-                      <h3>{course.get_full_code || course.course_template?.get_full_code || 'Course'}</h3>
-                      <span className="course-semester">{termInfo}</span>
-                    </div>
-
-                    <div className="course-details">
-                      <p><strong>{course.course_template?.name || 'Course'}</strong></p>
-                      <p>Students: {course.students_count || 0}</p>
-                      <p>Assessments: {course.assessments_count || 0}</p>
-                      <p>
-                        LO→PO Contributions: {courseContrib.length}{' '}
-                        {courseContrib.length > 0 && (
-                          <span className="course-average">
-                            (Pending: {pending} • Approved: {approved})
-                          </span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="course-actions">
-                      {/* Keep assessments if your system uses them for LO measurement */}
-                      <Link
-                        to={`/instructor/courses/${course.id}/assessments`}
-                        className="manage-assessments-btn"
-                      >
-                        Manage Assessments
-                      </Link>
-
-                      {/* Stub routes for PO/LO mapping views (we can implement next) */}
-                      <Link
-                        to={`/instructor/courses/${course.id}/contributions`}
-                        className="manage-assessments-btn"
-                        style={{ marginLeft: 8 }}
-                      >
-                        LO→PO Mappings
-                      </Link>
-                    </div>
-                  </div>
-                )
-              })}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            <div className="info-card">
+              <h2 className="section-title" style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Profile Summary</h2>
+              <div className="info-row">
+                  <span className="info-label">Name</span>
+                  <span className="info-value">{user?.first_name} {user?.last_name}</span>
+              </div>
+              <div className="info-row">
+                  <span className="info-label">Email</span>
+                  <span className="info-value">{user?.email}</span>
+              </div>
+              <div className="info-row">
+                  <span className="info-label">Department</span>
+                  <span className="info-value">{user?.department_name || 'N/A'}</span>
+              </div>
+              <div className="info-row">
+                  <span className="info-label">Active Courses</span>
+                  <span className="info-value">{user?.active_courses || activeCourses.length}</span>
+              </div>
             </div>
-          )}
+
         </div>
 
-        {/* Contribution Queue (Instructor view) */}
-        <div className="dashboard-card">
-          <h2>Contribution Status</h2>
-
-          {loading ? (
-            <LoadingSkeleton lines={5} />
-          ) : error ? (
-            <StatusBlock type="error" message="Failed to load contributions" onRetry={refetch} />
-          ) : contributions.length === 0 ? (
-            <StatusBlock
-              type="empty"
-              message="No LO→PO contributions yet. Create mappings for your course learning outcomes."
-            />
-          ) : (
-            <div className="grades-list">
-              {contributions.slice(0, 10).map((c) => {
-                const status = getContributionStatus(c)
-                const loLabel = c?.learning_outcome?.code || c?.learning_outcome?.name || 'LO'
-                const poLabel = c?.program_outcome?.code || c?.program_outcome?.name || 'PO'
-                const weight = c?.weight ?? c?.contribution ?? '—'
-
-                return (
-                  <div key={c.id} className="grade-item">
-                    <div className="grade-header">
-                      <span className="grade-assessment">
-                        {loLabel} → {poLabel}
-                      </span>
-                      <span className="grade-score">
-                        Status: {status}
-                      </span>
-                    </div>
-                    <div className="grade-details">
-                      <span className="grade-course">
-                        {c?.course_instance?.get_full_code ||
-                          c?.course_instance?.course_template?.get_full_code ||
-                          'Course'}
-                      </span>
-                      <span className="grade-percentage">
-                        Weight: {weight}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-              {contributions.length > 10 && (
-                <p className="more-indicator">+{contributions.length - 10} more</p>
-              )}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )
