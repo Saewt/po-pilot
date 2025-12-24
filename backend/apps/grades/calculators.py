@@ -17,7 +17,7 @@ class AchievementCalculator:
         ).prefetch_related(
             Prefetch(
                 'po_contributions',
-                queryset=LOtoPOContribution.objects.filter(is_approved=True, program_outcome__in=program_outcomes),
+                queryset=LOtoPOContribution.objects.filter(approval_status='APPROVED', program_outcome__in=program_outcomes),
                 to_attr='approved_po_conts'
             ),
             Prefetch(
@@ -85,7 +85,7 @@ class AchievementCalculator:
         ).prefetch_related(
             Prefetch(
                 'po_contributions',
-                queryset=LOtoPOContribution.objects.filter(is_approved=True, program_outcome__in=program_outcomes),
+                queryset=LOtoPOContribution.objects.filter(approval_status='APPROVED', program_outcome__in=program_outcomes),
                 to_attr='approved_po_conts'
             ),
             'assessment_contributions__assessment'
@@ -252,3 +252,92 @@ class AchievementCalculator:
         
         return results
         
+    @staticmethod
+    def calculate_final_course_grade(student, course_instance, pre_fetched_grades=None, pre_fetched_assessments=None):
+        assessments = pre_fetched_assessments if pre_fetched_assessments is not None else course_instance.assessments.all()
+        
+        if pre_fetched_grades is not None:
+            # Use pre-fetched list/queryset
+            grades_map = {grade.assessment_id: grade.score for grade in pre_fetched_grades}
+        else:
+            student_grades = AssessmentGrade.objects.filter(
+                student=student,
+                assessment__in=assessments
+            )
+            grades_map = {grade.assessment_id: grade.score for grade in student_grades}
+        
+        total_score = Decimal(0)
+        total_possible_weight = Decimal(0)
+        
+        for assessment in assessments:
+            score = grades_map.get(assessment.id)
+            if score is not None:
+                if assessment.max_score > 0:
+                    contribution = (score / assessment.max_score) * assessment.weight
+                    total_score += contribution
+            
+            total_possible_weight += assessment.weight
+            
+        score_val = float(total_score) if total_possible_weight > 0 else 0.0
+        letter_grade = "FF"
+        if score_val >= 90: letter_grade = "AA"
+        elif score_val >= 85: letter_grade = "BA"
+        elif score_val >= 80: letter_grade = "BB"
+        elif score_val >= 70: letter_grade = "CB"
+        elif score_val >= 60: letter_grade = "CC"
+        elif score_val >= 55: letter_grade = "DC"
+        elif score_val >= 50: letter_grade = "DD"
+        
+        # Normalize score to 100% scale if weights don't sum to 100
+        normalized_score = score_val
+        if total_possible_weight > 0 and total_possible_weight != 100:
+            normalized_score = (Decimal(score_val) / total_possible_weight) * 100
+        else:
+            normalized_score = score_val
+        
+        return {
+            "total_score": round(score_val, 2),
+            "normalized_score": round(normalized_score, 2),
+            "letter_grade": letter_grade,
+            "total_possible_weight": float(total_possible_weight)
+        }
+
+    @staticmethod
+    def calculate_student_gpa(student):
+        points_map = {
+            "AA": 4.00, "BA": 3.50, "BB": 3.00, "CB": 2.50,
+            "CC": 2.00, "DC": 1.50, "DD": 1.00, "FF": 0.00
+        }
+        
+        courses = student.enrolled_courses.filter(is_active=False).select_related('course_template')
+        
+        total_points = 0.0
+        total_credits = 0
+        
+        course_details = []
+        
+        for course in courses:
+            grade_info = AchievementCalculator.calculate_final_course_grade(student, course)
+            letter = grade_info['letter_grade']
+            points = points_map.get(letter, 0.0)
+            credit = course.course_template.credit
+            
+            total_points += points * credit
+            total_credits += credit
+            
+            course_details.append({
+                "course_code": course.course_template.code,
+                "credit": credit,
+                "letter_grade": letter,
+                "points": points
+            })
+            
+        gpa = 0.0
+        if total_credits > 0:
+            gpa = total_points / total_credits
+            
+        return {
+            "gpa": round(gpa, 2),
+            "total_credits": total_credits,
+            "course_details": course_details
+        }

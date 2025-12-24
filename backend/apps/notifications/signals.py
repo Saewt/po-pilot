@@ -59,18 +59,30 @@ def notify_course_announcement(sender, instance: CourseAnnouncement, created, **
 
 @receiver(post_save, sender="core.DepartmentAnnouncement")
 def notify_department_announcement(sender, instance, created, **kwargs):
-    """Send notification to all students in the department when an announcement is posted."""
     if not created:
         return
 
-    student_ids = instance.department.members.filter(role="STUDENT").values_list("id", flat=True)
+    from apps.core.models import DepartmentAnnouncement
 
-    for uid in student_ids:
-        Notification.objects.create(
-            recipient_id=uid,
-            notification_type=Notification.Type.GENERAL,
-            title=f"Duyuru: {instance.title}",
-            message=f"{instance.department.code} - {instance.message}",
-            related_object_type="DepartmentAnnouncement",
-            related_object_id=str(instance.id),
-        )
+    if instance.audience == DepartmentAnnouncement.Audience.STUDENTS:
+        recipients = instance.department.members.filter(role="STUDENT")
+    elif instance.audience == DepartmentAnnouncement.Audience.INSTRUCTORS:
+        recipients = instance.department.members.filter(role="INSTRUCTOR")
+    else:
+        recipients = instance.department.members.filter(role__in=["STUDENT", "INSTRUCTOR"])
+
+    recipient_ids = list(recipients.values_list("id", flat=True))
+
+    Notification.objects.bulk_create(
+        [
+            Notification(
+                recipient_id=uid,
+                notification_type=Notification.Type.GENERAL,
+                title=f"Duyuru: {instance.title}",
+                message=f"{instance.department.code} - {instance.message}",
+                related_object_type="DepartmentAnnouncement",
+                related_object_id=str(instance.id),
+            )
+            for uid in recipient_ids
+        ]
+    )

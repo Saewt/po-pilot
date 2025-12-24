@@ -266,8 +266,8 @@ class LOtoPOContributionWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LOtoPOContribution
-        fields = ["id", "learning_outcome_id", "program_outcome_id", "weight", "is_approved"]
-        read_only_fields = ["id", "is_approved"]
+        fields = ["id", "learning_outcome_id", "program_outcome_id", "weight", "approval_status"]
+        read_only_fields = ["id", "approval_status"]
 
     def validate(self, data):
         learning_outcome = data.get('learning_outcome')
@@ -290,7 +290,7 @@ class LOtoPOContributionListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LOtoPOContribution
-        fields = ["id", "program_outcome", "weight", "is_approved", "approved_at"]
+        fields = ["id", "program_outcome", "weight", "approval_status", "approved_at", "decline_reason"]
 
 
 class LOtoPOContributionDetailSerializer(serializers.ModelSerializer):
@@ -302,8 +302,8 @@ class LOtoPOContributionDetailSerializer(serializers.ModelSerializer):
         model = LOtoPOContribution
         fields = [
             "id", "learning_outcome", "program_outcome", "weight", 
-            "is_approved", "approved_by", "approved_by_name", "approved_at",
-            "created_at", "updated_at"
+            "approval_status", "approved_by", "approved_by_name", "approved_at",
+            "decline_reason", "created_at", "updated_at"
         ]
         read_only_fields = ["id", "approved_by", "approved_at", "created_at", "updated_at"]
 
@@ -403,4 +403,49 @@ class StudentUnenrollSerializer(serializers.Serializer):
             raise serializers.ValidationError(f"Invalid student ID: {student_id}")
         
         return student_id
+
+
+class LOtoPOApprovalActionSerializer(serializers.Serializer):
+    """Serializer for LO-PO approval actions (approve/decline)."""
+    action = serializers.ChoiceField(
+        choices=["approve", "decline", "reset_to_pending"],
+        help_text="Action to perform on the LO-PO contribution"
+    )
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Reason for declining (required when action is 'decline')"
+    )
+    
+    def validate(self, data):
+        action = data.get('action')
+        reason = data.get('reason')
+        
+        if action == 'decline' and not reason:
+            raise serializers.ValidationError({
+                'reason': 'Reason is required when declining a contribution.'
+            })
+        
+        return data
+
+
+class FinalGradeSerializer(serializers.Serializer):
+    """Serializer for final course grades."""
+    student_id = serializers.IntegerField()
+    student_number = serializers.CharField()
+    student_name = serializers.CharField()
+    total_score = serializers.DecimalField(max_digits=5, decimal_places=2)
+    normalized_score = serializers.DecimalField(max_digits=5, decimal_places=2)
+    letter_grade = serializers.CharField()
+    total_possible_weight = serializers.DecimalField(max_digits=5, decimal_places=2)
+
+
+class GradeDistributionSerializer(serializers.Serializer):
+    """Serializer for grade distribution statistics."""
+    total_students = serializers.IntegerField()
+    distribution = serializers.DictField(
+        child=serializers.IntegerField(),
+        help_text="Map of letter grades to count (e.g. {'A': 5, 'B': 3})"
+    )
+    average_score = serializers.DecimalField(max_digits=5, decimal_places=2)
 

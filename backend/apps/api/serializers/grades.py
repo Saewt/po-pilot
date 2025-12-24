@@ -214,3 +214,14 @@ class BulkGradeUpdateSerializer(serializers.Serializer):
         
         return grades
 
+
+class BulkGradeImportSerializer(serializers.Serializer):
+    """Serializer for bulk grade import via file."""
+    assessment_id = serializers.IntegerField(help_text="ID of the assessment to grade")
+    file = serializers.FileField(help_text="CSV or Excel file with 'student_id' and 'score' columns")
+    
+    def validate_file(self, value):
+        if not value.name.lower().endswith(('.csv', '.xlsx', '.xls')):
+            raise serializers.ValidationError("Only CSV or Excel files are allowed.")
+        return value
+

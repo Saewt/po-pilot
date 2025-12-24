@@ -116,12 +116,15 @@ class ProgramOutcomeDetailSerializer(serializers.ModelSerializer):
 
     def get_lo_contributions_count(self, obj):
         total = getattr(obj, "lo_contributions_total_count", obj.lo_contributions.count())
-        approved = getattr(obj, "lo_contributions_approved_count", obj.lo_contributions.filter(is_approved=True).count())
+        approved = getattr(obj, "lo_contributions_approved_count", obj.lo_contributions.filter(approval_status='APPROVED').count())
+        pending = getattr(obj, "lo_contributions_pending_count", obj.lo_contributions.filter(approval_status='PENDING').count())
+        declined = getattr(obj, "lo_contributions_declined_count", obj.lo_contributions.filter(approval_status='DECLINED').count())
         
         return {
             "total": total,
             "approved": approved,
-            "pending": total - approved,
+            "pending": pending,
+            "declined": declined,
         }
 
 
@@ -146,9 +149,11 @@ class ProgramOutcomeLOSummarySerializer(serializers.ModelSerializer):
                     "description": c.learning_outcome.description
                 },
                 "weight": c.weight,
-                "is_approved": c.is_approved,
+                "approval_status": c.approval_status,
                 "approved_by": f"{c.approved_by.first_name} {c.approved_by.last_name}" if c.approved_by else None,
-                "status": "Approved" if c.is_approved else ("Rejected" if c.approved_by else "Pending") 
+                "approved_at": c.approved_at,
+                "decline_reason": c.decline_reason,
+                "status": c.get_approval_status_display() if hasattr(c, 'get_approval_status_display') else c.approval_status
             }
             for c in contributions
         ]

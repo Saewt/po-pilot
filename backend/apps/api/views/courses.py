@@ -1,4 +1,5 @@
 from django.db.models import Count, Q
+from collections import defaultdict
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import permissions, serializers, status
 from rest_framework.decorators import action
@@ -36,6 +37,8 @@ from apps.api.serializers.courses import (
     StudentEnrollmentSerializer,
     StudentUnenrollSerializer,
     CourseStudentSerializer,
+    FinalGradeSerializer,
+    GradeDistributionSerializer,
 )
 # Note: LOtoPOContributionViewSet is in core.py, but used serializers from courses.py which I updated.
 
@@ -80,7 +83,27 @@ class LearningOutcomeViewSet(ModelViewSet):
         if self.action == 'retrieve':
             queryset = queryset.prefetch_related('po_contributions', 'assessment_contributions')
         
+        # Role-based filtering
+        if user.is_instructor():
+             # Instructors only see LOs for courses they teach
+             queryset = queryset.filter(course_template__instances__instructor=user).distinct()
+
         return queryset
+
+    def perform_create(self, serializer):
+        """Validate that instructor teaches the course for this LO."""
+        user = self.request.user
+        course_template = serializer.validated_data.get('course_template')
+        
+        if user.is_instructor() and course_template:
+             # Check if instructor teaches any instance of this course template
+             has_access = course_template.instances.filter(instructor=user).exists()
+             if not has_access:
+                 raise serializers.ValidationError(
+                     "You can only create Learning Outcomes for courses you teach."
+                 )
+        
+        serializer.save()
 
 
 class CourseTemplateViewSet(ModelViewSet):
@@ -379,6 +402,145 @@ class CourseInstanceViewSet(ModelViewSet):
             "filtered_by_class_year": filter_year,
             "students": CourseStudentSerializer(data, many=True).data
         })
+
+    @extend_schema(
+        responses={200: FinalGradeSerializer(many=True)},
+        summary="Get final grades for all students",
+        description="Calculates and returns final grades for all students enrolled in this course.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['get'], permission_classes=[(IsInstructor & IsCourseInstructor) | IsDepartmentHead | IsAdminUser])
+    def final_grades(self, request, pk=None):
+        course_instance = self.get_object()
+        students = course_instance.students.all()
+        
+        # Optimization: Pre-fetch everything
+        from apps.grades.models import AssessmentGrade
+        
+        assessments = list(course_instance.assessments.all())
+        all_grades = AssessmentGrade.objects.filter(
+            assessment__course_instance=course_instance
+        )
+        
+        # Group grades by student
+        grades_by_student = defaultdict(list)
+        for grade in all_grades:
+            grades_by_student[grade.student_id].append(grade)
+            
+        results = []
+        
+        for student in students:
+            # Pass pre-fetched data to avoid N+1
+            student_grades = grades_by_student.get(student.id, [])
+            grade_info = AchievementCalculator.calculate_final_course_grade(
+                student, 
+                course_instance, 
+                pre_fetched_grades=student_grades,
+                pre_fetched_assessments=assessments
+            )
+            
+            results.append({
+                "student_id": student.id,
+                "student_number": student.student_id,
+                "student_name": f"{student.first_name} {student.last_name}",
+                "total_score": grade_info['total_score'],
+                "normalized_score": grade_info.get('normalized_score', grade_info['total_score']),
+                "letter_grade": grade_info['letter_grade'],
+                "total_possible_weight": grade_info['total_possible_weight']
+            })
+            
+        serializer = FinalGradeSerializer(results, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        responses={200: FinalGradeSerializer},
+        summary="Get student's final grade",
+        description="Get final grade for a specific student in this course.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['get'], url_path='final-grades/(?P<student_id>[^/.]+)')
+    def student_final_grade(self, request, pk=None, student_id=None):
+        course_instance = self.get_object()
+        
+        # Check permissions: Instructor/DeptHead/Admin OR the student themselves
+        is_instructor = course_instance.instructor == request.user
+        is_dept_head = request.user.is_department_head() and request.user.department == course_instance.course_template.department
+        
+        # Lookup student
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        try:
+            student = User.objects.get(student_id=student_id)
+        except User.DoesNotExist:
+             # Anti-enumeration: if unauthorized, don't reveal if student exists
+             if not (is_instructor or is_dept_head or request.user.is_staff):
+                 return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+             return Response({"detail": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        is_self = request.user == student
+        
+        if not (is_instructor or is_dept_head or request.user.is_staff or is_self):
+             return Response(
+                {"detail": "You do not have permission to view this grade."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        if not course_instance.students.filter(id=student.id).exists():
+             # Anti-enumeration: consistent error for unauthorized
+             if is_self: # If student asks for a course they aren't in
+                 return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_403_FORBIDDEN)
+                 
+             return Response({"detail": "Student is not enrolled in this course."}, status=status.HTTP_404_NOT_FOUND)
+
+        grade_info = AchievementCalculator.calculate_final_course_grade(student, course_instance)
+        
+        result = {
+            "student_id": student.id,
+            "student_number": student.student_id,
+            "student_name": f"{student.first_name} {student.last_name}",
+            "total_score": grade_info['total_score'],
+            "normalized_score": grade_info.get('normalized_score', grade_info['total_score']),
+            "letter_grade": grade_info['letter_grade'],
+            "total_possible_weight": grade_info['total_possible_weight']
+        }
+        
+        serializer = FinalGradeSerializer(result)
+        return Response(serializer.data)
+
+    @extend_schema(
+        responses={200: GradeDistributionSerializer},
+        summary="Get grade distribution",
+        description="Returns the distribution of letter grades for the course.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['get'], permission_classes=[(IsInstructor & IsCourseInstructor) | IsDepartmentHead | IsAdminUser])
+    def grade_distribution(self, request, pk=None):
+        course_instance = self.get_object()
+        students = course_instance.students.all()
+        
+        distribution = defaultdict(int)
+        total_score_sum = 0
+        count = 0
+        
+        for student in students:
+            grade_info = AchievementCalculator.calculate_final_course_grade(student, course_instance)
+            letter = grade_info['letter_grade']
+            distribution[letter] += 1
+            total_score_sum += grade_info['total_score']
+            count += 1
+            
+        avg_score = 0
+        if count > 0:
+            avg_score = round(total_score_sum / count, 2)
+            
+        result = {
+            "total_students": count,
+            "distribution": dict(distribution),
+            "average_score": avg_score
+        }
+        
+        serializer = GradeDistributionSerializer(result)
+        return Response(serializer.data)
 
 
 class AssessmentViewSet(ModelViewSet):

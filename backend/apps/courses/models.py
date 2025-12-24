@@ -219,6 +219,11 @@ class AssessmentToLOContribution(models.Model):
         
 
 class LOtoPOContribution(models.Model):
+    class ApprovalStatus(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        APPROVED = "APPROVED", "Approved"
+        DECLINED = "DECLINED", "Declined"
+
     learning_outcome = models.ForeignKey(
         LearningOutcome,
         on_delete=models.CASCADE,
@@ -234,7 +239,13 @@ class LOtoPOContribution(models.Model):
         decimal_places=1,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
-    is_approved = models.BooleanField(default=False)
+    approval_status = models.CharField(
+        max_length=20,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.PENDING,
+        db_index=True,
+        help_text="Current approval status of this LO-PO contribution"
+    )
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -242,8 +253,14 @@ class LOtoPOContribution(models.Model):
         blank=True,
         related_name="approved_lo_po_contributions",
         limit_choices_to=Q(role="DEPARTMENT_HEAD"),
+        help_text="Department head who approved or declined this contribution"
     )
     approved_at = models.DateTimeField(null=True, blank=True)
+    decline_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Reason for declining this contribution"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -259,13 +276,51 @@ class LOtoPOContribution(models.Model):
             raise ValidationError(
                 "Program Outcome must belong to the same department as the Learning Outcome."
             )
+    
     def approve(self, user):
+        """Approve this LO-PO contribution."""
         if not user.is_department_head():
             raise PermissionError("Only department heads can approve LO-PO contributions.")
-        self.is_approved = True
+        self.approval_status = self.ApprovalStatus.APPROVED
         self.approved_by = user
         self.approved_at = timezone.now()
+        self.decline_reason = None
         self.save()
+    
+    def decline(self, user, reason=None):
+        """Decline this LO-PO contribution."""
+        if not user.is_department_head():
+            raise PermissionError("Only department heads can decline LO-PO contributions.")
+        self.approval_status = self.ApprovalStatus.DECLINED
+        self.approved_by = user
+        self.approved_at = timezone.now()
+        self.decline_reason = reason
+        self.save()
+    
+    def reset_to_pending(self, user):
+        """Reset contribution to pending status (for department head override)."""
+        if not user.is_department_head():
+            raise PermissionError("Only department heads can reset LO-PO contributions.")
+        self.approval_status = self.ApprovalStatus.PENDING
+        self.approved_by = None
+        self.approved_at = None
+        self.decline_reason = None
+        self.save()
+    
+    @property
+    def is_approved(self):
+        """Backward compatibility property."""
+        return self.approval_status == self.ApprovalStatus.APPROVED
+    
+    @property
+    def is_declined(self):
+        """Check if contribution is declined."""
+        return self.approval_status == self.ApprovalStatus.DECLINED
+    
+    @property
+    def is_pending(self):
+        """Check if contribution is pending."""
+        return self.approval_status == self.ApprovalStatus.PENDING
 
 class CourseAnnouncement(models.Model):
     course_instance = models.ForeignKey(

@@ -14,9 +14,11 @@ from apps.api.serializers.users import (
     UserSerializer, 
     BulkStudentCreateSerializer,
     BulkStudentResultSerializer,
-    BulkStudentDeleteSerializer
+    BulkStudentDeleteSerializer,
+    GPASerializer
 )
-from apps.api.permissions import IsDepartmentHead
+from apps.api.permissions import IsDepartmentHead, IsStudent
+from apps.grades.calculators import AchievementCalculator
 from apps.users.models import User
 
 
@@ -221,3 +223,37 @@ class UserViewSet(ModelViewSet):
             "deleted_count": deleted_count,
             "message": f"Successfully deleted {deleted_count} students."
         })
+
+    @extend_schema(
+        responses={200: GPASerializer},
+        summary="Get student GPA",
+        description="Calculate current GPA from completed courses.",
+        tags=["users"]
+    )
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminUser | IsDepartmentHead | IsStudent])
+    def gpa(self, request, pk=None):
+        user = self.get_object()
+        
+        # Permission check: Student can view own, Dept Head/Admin can view any
+        if request.user.is_student() and request.user != user:
+             return Response({"detail": "You do not have permission to view this GPA."}, status=status.HTTP_403_FORBIDDEN)
+             
+        if not user.is_student():
+             return Response({"detail": "User is not a student."}, status=status.HTTP_400_BAD_REQUEST)
+             
+        gpa_data = AchievementCalculator.calculate_student_gpa(user)
+        serializer = GPASerializer(gpa_data)
+        return Response(serializer.data)
+        
+    @extend_schema(
+        responses={200: GPASerializer},
+        summary="Get GPA history",
+        description="Get GPA history over semesters (Not implemented yet, returns current GPA for now).",
+        tags=["users"]
+    )
+    @action(detail=True, methods=['get'], url_path='gpa/history', permission_classes=[IsAdminUser | IsDepartmentHead | IsStudent])
+    def gpa_history(self, request, pk=None):
+        # Placeholder for history. 
+        # For now, return current GPA.
+        # Future: calculate cumulative GPA after each semester.
+        return self.gpa(request, pk)

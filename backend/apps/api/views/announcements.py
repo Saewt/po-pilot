@@ -71,7 +71,10 @@ class DepartmentAnnouncementViewSet(viewsets.ModelViewSet):
         qs = DepartmentAnnouncement.objects.select_related("department", "created_by")
 
         if user.is_student():
-            return qs.filter(department=user.department)
+            return qs.filter(
+                department=user.department,
+                audience__in=['STUDENTS', 'ALL']
+            )
 
         if user.is_department_head():
             try:
@@ -79,9 +82,12 @@ class DepartmentAnnouncementViewSet(viewsets.ModelViewSet):
             except Exception:
                 return qs.none()
 
-        # Instructors see announcements from their department
+        # Instructors see announcements from their department based on audience
         if user.is_instructor():
-            return qs.filter(department=user.department)
+            return qs.filter(
+                department=user.department,
+                audience__in=['INSTRUCTORS', 'ALL']
+            )
 
         return qs.none()
 

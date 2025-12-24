@@ -1,6 +1,14 @@
 # apps/core/admin.py
 from django.contrib import admin
-from .models import Department, ProgramOutcome
+from .models import Department, ProgramOutcome, DepartmentAnnouncement
+
+
+@admin.register(DepartmentAnnouncement)
+class DepartmentAnnouncementAdmin(admin.ModelAdmin):
+    list_display = ("title", "department", "audience", "created_by", "created_at")
+    list_filter = ("department", "audience", "created_at")
+    search_fields = ("title", "message")
+    ordering = ("-created_at",)
 
 
 @admin.register(Department)

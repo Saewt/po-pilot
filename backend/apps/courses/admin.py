@@ -129,9 +129,9 @@ class AssessmentToLOContributionAdmin(admin.ModelAdmin):
 
 @admin.register(LOtoPOContribution)
 class LOtoPOContributionAdmin(admin.ModelAdmin):
-    list_display = ("learning_outcome", "program_outcome", "weight", "is_approved", "approved_by", "approved_at")
+    list_display = ("learning_outcome", "program_outcome", "weight", "approval_status", "approved_by", "approved_at")
     list_filter = (
-        "is_approved",
+        "approval_status",
         "learning_outcome__course_template__department",
         "program_outcome__department",
     )

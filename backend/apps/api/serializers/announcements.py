@@ -13,5 +13,5 @@ class CourseAnnouncementSerializer(serializers.ModelSerializer):
 class DepartmentAnnouncementSerializer(serializers.ModelSerializer):
     class Meta:
         model = DepartmentAnnouncement
-        fields = ["id", "department", "title", "message", "created_by", "created_at"]
+        fields = ["id", "department", "title", "message", "audience", "created_by", "created_at"]
         read_only_fields = ["id", "department", "created_by", "created_at"]
