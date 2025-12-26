@@ -21,7 +21,13 @@ const InstructorHome = () => {
       setLoading(true)
       setError(null)
       const response = await coursesAPI.list()
-      setCourses(response.results || [])
+      const courseList = response.results || response || []
+
+      // Fetch details for each course to get accurate student counts
+      const detailsPromises = courseList.map(c => coursesAPI.get(c.id))
+      const detailedCourses = await Promise.all(detailsPromises)
+
+      setCourses(detailedCourses)
     } catch (err) {
       console.error('Failed to load courses:', err)
       setError(err.response?.data?.detail || 'Failed to load courses')
@@ -34,7 +40,7 @@ const InstructorHome = () => {
   if (error) return <ErrorState error={error} onRetry={loadCourses} />
 
   const columns = [
-    { 
+    {
       header: 'Course',
       accessor: 'full_code',
       render: (row) => (
@@ -55,7 +61,7 @@ const InstructorHome = () => {
       accessor: 'students_count',
       render: (row) => (
         <span className="badge" style={{ background: '#dbeafe', color: '#1e40af' }}>
-            {row.students_count || (row.students?.length || 0)} Enrolled
+          {row.students_count || (row.students?.length || 0)} Enrolled
         </span>
       )
     },
@@ -70,13 +76,13 @@ const InstructorHome = () => {
               navigate(`/app/instructor/courses/${row.id}/lo-po`)
             }}
             style={{
-                padding: '0.25rem 0.75rem',
-                fontSize: '0.875rem',
-                backgroundColor: '#e3f2fd',
-                color: '#1565c0',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#e3f2fd',
+              color: '#1565c0',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
             }}
           >
             Outcomes
@@ -87,13 +93,13 @@ const InstructorHome = () => {
               navigate(`/app/instructor/courses/${row.id}/students`)
             }}
             style={{
-                padding: '0.25rem 0.75rem',
-                fontSize: '0.875rem',
-                backgroundColor: '#f3e5f5',
-                color: '#7b1fa2',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#f3e5f5',
+              color: '#7b1fa2',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
             }}
           >
             Students
@@ -109,7 +115,7 @@ const InstructorHome = () => {
       <div className="info-card" style={{ marginBottom: '2rem' }}>
         <p>Welcome back! Here are your active courses for this semester.</p>
       </div>
-      
+
       <div>
         <h2 className="section-title">My Courses</h2>
         <DataTable columns={columns} data={courses} />
