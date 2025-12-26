@@ -57,31 +57,13 @@ const DeptStudentList = () => {
     const loadStudents = async () => {
         try {
             setLoading(true)
-            let allStudents = []
-            let page = 1
-            let hasMore = true
-
-            while (hasMore) {
-                const response = await usersAPI.list({
-                    role: 'STUDENT',
-                    department: user.department,
-                    page_size: 100, // Reasonable chunk size
-                    page: page
-                })
-
-                // Handle pagination or direct array
-                const data = response.results || (Array.isArray(response) ? response : [])
-                allStudents = [...allStudents, ...data]
-
-                // Check for next page
-                if (response.next && response.results) {
-                    page++
-                } else {
-                    hasMore = false
-                }
-            }
-
-            setStudents(allStudents)
+            const response = await usersAPI.list({
+                role: 'STUDENT',
+                department: user.department
+            })
+            // Handle pagination or direct array
+            const data = response.results || response
+            setStudents(Array.isArray(data) ? data : [])
             setSelectedIds(new Set()) // Clear selection on reload
         } catch (err) {
             console.error('Failed to load students:', err)
@@ -239,17 +221,15 @@ const DeptStudentList = () => {
         {
             header: 'Student ID',
             accessor: 'student_id',
-            render: (row) => row.student_id || 'N/A',
-            sortable: true
+            render: (row) => row.student_id || 'N/A'
         },
         {
             header: 'Name',
             accessor: 'first_name',
             render: (row) => `${row.first_name || ''} ${row.last_name || ''}`.trim(),
-            sortable: true
         },
-        { header: 'Email', accessor: 'email', sortable: true },
-        { header: 'Enrollment Year', accessor: 'enrollment_year', sortable: true },
+        { header: 'Email', accessor: 'email' },
+        { header: 'Enrollment Year', accessor: 'enrollment_year' },
     ]
 
     if (loading && students.length === 0 && !showRegister && !showBulkImport) return <LoadingState />
@@ -306,7 +286,6 @@ const DeptStudentList = () => {
                 columns={columns}
                 data={filteredStudents}
                 emptyMessage="No students found matching your filters."
-                compact={true}
             />
 
             {/* Single Registration Modal - No Password Field */}

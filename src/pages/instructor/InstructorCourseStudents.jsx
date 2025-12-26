@@ -87,7 +87,7 @@ const InstructorCourseStudents = () => {
       inputIds.forEach(sid => {
         const student = deptStudents.find(s => s.student_id === sid)
         if (student) {
-          internalIds.push(student.id)
+          internalIds.push(student.student_id)
         } else {
           notFoundIds.push(sid)
         }
@@ -138,80 +138,80 @@ const InstructorCourseStudents = () => {
       <div style={{ marginBottom: '2rem' }}>
         <h1 className="page-title" style={{ marginBottom: '0.5rem' }}>{course.full_code || course.code} - {courseName}</h1>
         <div style={{ display: 'flex', gap: '1rem', color: '#64748b' }}>
-            <span className="badge" style={{ background: '#e2e8f0', color: '#475569' }}>
-                {course.semester} {course.year}
-            </span>
-            <span className="badge" style={{ background: '#dbeafe', color: '#1e40af' }}>
-                {course.students_count || students.length} Students
-            </span>
+          <span className="badge" style={{ background: '#e2e8f0', color: '#475569' }}>
+            {course.semester} {course.year}
+          </span>
+          <span className="badge" style={{ background: '#dbeafe', color: '#1e40af' }}>
+            {course.students_count || students.length} Students
+          </span>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', alignItems: 'start' }}>
-          {/* Left Column: Enrollment */}
-          <div className="info-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
-            <h2 className="section-title" style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.1rem' }}>
-                Enroll New Students
-            </h2>
+        {/* Left Column: Enrollment */}
+        <div className="info-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
+          <h2 className="section-title" style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+            Enroll New Students
+          </h2>
 
-            <div className="form-group">
-                <label style={{ fontWeight: 500, marginBottom: '0.5rem', display: 'block' }}>Student IDs</label>
-                <input
-                    type="text"
-                    value={studentIdsInput}
-                    onChange={(e) => setStudentIdsInput(e.target.value)}
-                    placeholder="e.g. 20205011, 20205012"
-                    disabled={enrolling}
-                    style={{ width: '100%', padding: '0.75rem', marginBottom: '8px' }}
-                />
-                <span className="text-secondary" style={{ fontSize: '0.85rem' }}>
-                    Enter comma-separated IDs.
-                </span>
-            </div>
-
-            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                    className="btn btn-primary"
-                    onClick={handleEnroll}
-                    disabled={enrolling || !studentIdsInput.trim()}
-                    style={{ width: '100%' }}
-                >
-                    {enrolling ? 'Enrolling...' : 'Enroll Students'}
-                </button>
-            </div>
+          <div className="form-group">
+            <label style={{ fontWeight: 500, marginBottom: '0.5rem', display: 'block' }}>Student IDs</label>
+            <input
+              type="text"
+              value={studentIdsInput}
+              onChange={(e) => setStudentIdsInput(e.target.value)}
+              placeholder="e.g. 20205011, 20205012"
+              disabled={enrolling}
+              style={{ width: '100%', padding: '0.75rem', marginBottom: '8px' }}
+            />
+            <span className="text-secondary" style={{ fontSize: '0.85rem' }}>
+              Enter comma-separated IDs.
+            </span>
           </div>
 
-          {/* Right Column: List */}
-          <div className="info-card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '1.5rem 1.5rem 0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 className="section-title" style={{ margin: 0, fontSize: '1.1rem' }}>Enrolled Student List</h2>
-            </div>
-            
-            {students.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                  No students enrolled yet.
-              </div>
-            ) : (
-              <DataTable
-                columns={[
-                  { 
-                      header: 'Student ID', 
-                      accessor: 'student_id', 
-                      render: r => <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{r.student_id || 'N/A'}</span>
-                  },
-                  { 
-                      header: 'Name', 
-                      accessor: 'id', 
-                      render: r => <span style={{ fontWeight: 500 }}>{`${r.first_name || ''} ${r.last_name || ''}`.trim() || 'N/A'}</span> 
-                  },
-                  { header: 'Email', accessor: 'email' },
-                ]}
-                data={students}
-                pagination={true}
-                itemsPerPage={10}
-              />
-            )}
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleEnroll}
+              disabled={enrolling || !studentIdsInput.trim()}
+              style={{ width: '100%' }}
+            >
+              {enrolling ? 'Enrolling...' : 'Enroll Students'}
+            </button>
           </div>
+        </div>
+
+        {/* Right Column: List */}
+        <div className="info-card" style={{ padding: '0', overflow: 'hidden' }}>
+          <div style={{ padding: '1.5rem 1.5rem 0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="section-title" style={{ margin: 0, fontSize: '1.1rem' }}>Enrolled Student List</h2>
+          </div>
+
+          {students.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+              No students enrolled yet.
+            </div>
+          ) : (
+            <DataTable
+              columns={[
+                {
+                  header: 'Student ID',
+                  accessor: 'student_id',
+                  render: r => <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{r.student_id || 'N/A'}</span>
+                },
+                {
+                  header: 'Name',
+                  accessor: 'id',
+                  render: r => <span style={{ fontWeight: 500 }}>{`${r.first_name || ''} ${r.last_name || ''}`.trim() || 'N/A'}</span>
+                },
+                { header: 'Email', accessor: 'email' },
+              ]}
+              data={students}
+              pagination={true}
+              itemsPerPage={10}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
