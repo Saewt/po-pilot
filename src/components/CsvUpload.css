@@ -1,0 +1,15 @@
+.csv-upload {
+  margin-top: var(--spacing-md);
+}
+
+.csv-input {
+  margin-bottom: var(--spacing-sm);
+}
+
+.csv-error {
+  color: var(--color-error);
+  margin-top: var(--spacing-sm);
+  font-size: 0.875rem;
+}
+
+
