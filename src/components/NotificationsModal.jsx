@@ -13,30 +13,23 @@ const NotificationsModal = ({ isOpen, onClose }) => {
     const { markAsRead: markAsReadContext, markAllAsRead: markAllAsReadContext } = useNotification()
     const [loading, setLoading] = useState(true)
     const [notifications, setNotifications] = useState([])
+    const [expanded, setExpanded] = useState(false)
 
     useEffect(() => {
         if (isOpen) {
             loadNotifications()
+            handleMarkAllRead()
+        } else {
+            setExpanded(false)
         }
     }, [isOpen])
 
     const loadNotifications = async () => {
         try {
             setLoading(true)
-            if (user.role === 'INSTRUCTOR') {
-                const response = await announcementsAPI.list()
-                const data = (response.results || []).map(item => ({
-                    id: item.id,
-                    title: item.title,
-                    message: item.message,
-                    created_at: item.created_at,
-                    is_read: true 
-                }))
-                setNotifications(data)
-            } else {
-                const response = await notificationsAPI.list()
-                setNotifications(response.results || [])
-            }
+            const response = await notificationsAPI.list()
+            const data = response.results || (Array.isArray(response) ? response : [])
+            setNotifications(data)
         } catch (err) {
             console.error('Failed to load notifications:', err)
         } finally {
@@ -45,14 +38,10 @@ const NotificationsModal = ({ isOpen, onClose }) => {
     }
 
     const handleMarkAllRead = async () => {
-        if (user.role === 'INSTRUCTOR') return
-
-        if (notifications.every(n => n.is_read)) return
-
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+        
         try {
             await markAllAsReadContext()
-            setNotifications(notifications.map(n => ({ ...n, is_read: true })))
-            addToast('All notifications marked as read', 'success')
         } catch (err) {
             console.error('Failed to mark all read:', err)
         }
@@ -66,13 +55,13 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                 n.id === id ? { ...n, is_read: true } : n
             ))
         } catch (err) {
-            console.error('Failed to mark notification as read:', err)
+            console.error('Failed to mark item as read:', err)
         }
     }
 
     if (!isOpen) return null
 
-    const hasUnread = notifications.some(n => !n.is_read)
+    const displayedNotifications = expanded ? notifications : notifications.slice(0, 5)
 
     return (
         <div className="notifications-overlay" onClick={onClose}>
@@ -82,21 +71,11 @@ const NotificationsModal = ({ isOpen, onClose }) => {
             >
                 <div className="notifications-header">
                     <h3 className="notifications-title">
-                        {user.role === 'INSTRUCTOR' ? 'Announcements' : 'Notifications'}
+                        {user.role === 'INSTRUCTOR' ? 'Notifications & Announcements' : 'Notifications'}
                     </h3>
-                    {user.role !== 'INSTRUCTOR' && notifications.length > 0 && (
-                        <button
-                            onClick={handleMarkAllRead}
-                            className="notifications-action"
-                            disabled={!hasUnread}
-                            style={{ opacity: hasUnread ? 1 : 0.5, cursor: hasUnread ? 'pointer' : 'default' }}
-                        >
-                            Mark all read
-                        </button>
-                    )}
                 </div>
 
-                <div className="notifications-list">
+                <div className="notifications-list" style={{ overflowY: expanded ? 'auto' : 'hidden', maxHeight: expanded ? '60vh' : 'auto' }}>
                     {loading ? (
                         <div style={{ padding: '20px' }}>
                             <LoadingState />
@@ -110,37 +89,40 @@ const NotificationsModal = ({ isOpen, onClose }) => {
                             <div>No notifications</div>
                         </div>
                     ) : (
-                        <div>
-                            {notifications.map(notif => (
-                                <div
-                                    key={notif.id}
-                                    className={`notification-item ${!notif.is_read ? 'unread' : ''}`}
-                                >
-                                    {!notif.is_read && user.role !== 'INSTRUCTOR' && (
-                                        <button 
-                                            className="mark-read-btn"
-                                            onClick={(e) => handleMarkAsRead(notif.id, e)}
-                                            title="Mark as read"
-                                        >
-                                            <span className="dot" />
-                                        </button>
-                                    )}
-                                    <div className="notification-content">
-                                        <div className="notification-header-row">
-                                            <span className="notification-title">
-                                                {notif.title}
-                                            </span>
-                                            <span className="notification-time">
-                                                {new Date(notif.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            </span>
+                        <>
+                            <div>
+                                {displayedNotifications.map(notif => (
+                                    <div
+                                        key={notif.id}
+                                        className={`notification-item ${!notif.is_read ? 'unread' : ''}`}
+                                    >
+                                        <div className="notification-content">
+                                            <div className="notification-header-row">
+                                                <span className="notification-title">
+                                                    {notif.title}
+                                                </span>
+                                                <span className="notification-time">
+                                                    {new Date(notif.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                </span>
+                                            </div>
+                                            <p className="notification-message">
+                                                {notif.message}
+                                            </p>
                                         </div>
-                                        <p className="notification-message">
-                                            {notif.message}
-                                        </p>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                            
+                            {!expanded && notifications.length > 5 && (
+                                <button 
+                                    className="btn-text"
+                                    style={{ width: '100%', padding: '10px', textAlign: 'center', color: 'var(--color-primary)', borderTop: '1px solid var(--color-border)' }}
+                                    onClick={() => setExpanded(true)}
+                                >
+                                    See all notifications
+                                </button>
+                            )}
+                        </>
                     )}
                 </div>
             </div>

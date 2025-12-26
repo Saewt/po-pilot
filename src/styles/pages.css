@@ -279,4 +279,14 @@
   color: #2e7d32;
 }
 
+.badge-blue {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.badge-error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
 

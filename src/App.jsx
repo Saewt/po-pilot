@@ -15,6 +15,7 @@ import StudentCourseDetail from './pages/student/StudentCourseDetail'
 // Instructor pages
 import InstructorHome from './pages/instructor/InstructorHome'
 import InstructorCourses from './pages/instructor/InstructorCourses'
+import CourseAssessments from './pages/instructor/CourseAssessments'
 import InstructorCourseLoPo from './pages/instructor/InstructorCourseLoPo'
 import InstructorCourseStudents from './pages/instructor/InstructorCourseStudents'
 import InstructorGrades from './pages/instructor/InstructorGrades'
@@ -211,6 +212,18 @@ const AppRoutes = () => {
             <RequireRole roles="INSTRUCTOR">
               <AppLayout>
                 <InstructorCourseStudents />
+              </AppLayout>
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/app/instructor/courses/:courseId/assessments"
+        element={
+          <RequireAuth>
+            <RequireRole roles="INSTRUCTOR">
+              <AppLayout>
+                <CourseAssessments />
               </AppLayout>
             </RequireRole>
           </RequireAuth>

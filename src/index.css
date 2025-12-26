@@ -119,6 +119,11 @@ code {
   background-color: #d32f2f;
 }
 
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
 .btn-success {
   background-color: var(--color-success);
   color: var(--color-text-inverse);

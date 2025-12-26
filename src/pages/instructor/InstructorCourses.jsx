@@ -150,6 +150,23 @@ const InstructorCourses = () => {
           >
             Students
           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/app/instructor/courses/${row.id}/assessments`)
+            }}
+            style={{
+                padding: '0.25rem 0.75rem',
+                fontSize: '0.875rem',
+                backgroundColor: '#e0f2f1',
+                color: '#00695c',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+            }}
+          >
+            Assessments
+          </button>
         </div>
       )
     },

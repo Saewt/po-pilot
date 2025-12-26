@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { notificationsAPI } from '../api/notifications'
+import { announcementsAPI } from '../api/announcements'
 import { useAuth } from './AuthContext'
 
 const NotificationContext = createContext(null)

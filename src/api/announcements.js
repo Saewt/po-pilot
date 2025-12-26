@@ -31,6 +31,21 @@ export const announcementsAPI = {
         return true
     },
 
+    markAsRead: async (id) => {
+        const response = await http.patch(`/department-announcements/${id}/mark-as-read/`)
+        return response.data
+    },
+
+    markAllRead: async () => {
+        const response = await http.patch(`/department-announcements/mark-all-read/`)
+        return response.data
+    },
+
+    getUnreadCount: async () => {
+        const response = await http.get(`/department-announcements/unread-count/`)
+        return response.data
+    },
+
     listCourseAnnouncements: async (params = {}) => {
         const response = await http.get('/announcements/', { params })
         return response.data
@@ -54,5 +69,20 @@ export const announcementsAPI = {
     deleteCourseAnnouncement: async (id) => {
         await http.delete(`/announcements/${id}/`)
         return true
+    },
+
+    markCourseAnnouncementAsRead: async (id) => {
+        const response = await http.patch(`/announcements/${id}/mark-as-read/`)
+        return response.data
+    },
+
+    markAllCourseAnnouncementsRead: async () => {
+        const response = await http.patch(`/announcements/mark-all-read/`)
+        return response.data
+    },
+
+    getCourseAnnouncementUnreadCount: async () => {
+        const response = await http.get(`/announcements/unread-count/`)
+        return response.data
     }
 }
