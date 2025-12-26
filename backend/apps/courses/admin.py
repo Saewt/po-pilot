@@ -6,6 +6,8 @@ from .models import (
     Assessment,
     AssessmentToLOContribution,
     LOtoPOContribution,
+    CourseAnnouncement,
+    CourseAnnouncementReadReceipt,
 )
 
 # -------------------
@@ -188,3 +190,19 @@ class LOtoPOContributionAdmin(admin.ModelAdmin):
         self.message_user(request, f"{count} mapping approved.", level=messages.SUCCESS)
 
     approve_mappings.short_description = "Approve selected LO-PO mappings"
+
+
+@admin.register(CourseAnnouncement)
+class CourseAnnouncementAdmin(admin.ModelAdmin):
+    list_display = ("title", "course_instance", "created_by", "created_at")
+    list_filter = ("course_instance__course_template__department", "created_at")
+    search_fields = ("title", "message", "course_instance__course_template__code")
+    ordering = ("-created_at",)
+
+
+@admin.register(CourseAnnouncementReadReceipt)
+class CourseAnnouncementReadReceiptAdmin(admin.ModelAdmin):
+    list_display = ("announcement", "user", "read_at")
+    list_filter = ("announcement__course_instance__course_template__department", "read_at")
+    search_fields = ("announcement__title", "user__email")
+    ordering = ("-read_at",)

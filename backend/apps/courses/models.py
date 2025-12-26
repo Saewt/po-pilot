@@ -344,3 +344,27 @@ class CourseAnnouncement(models.Model):
 
     def __str__(self):
         return f"{self.course_instance.get_full_code()} - {self.title}"
+
+
+class CourseAnnouncementReadReceipt(models.Model):
+    """Tracks which users have read which course announcements."""
+    
+    announcement = models.ForeignKey(
+        CourseAnnouncement,
+        on_delete=models.CASCADE,
+        related_name="read_receipts",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="course_announcement_reads",
+    )
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("announcement", "user")
+        verbose_name = "Course Announcement Read Receipt"
+        verbose_name_plural = "Course Announcement Read Receipts"
+
+    def __str__(self):
+        return f"{self.user} read {self.announcement}"

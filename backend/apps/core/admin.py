@@ -1,6 +1,14 @@
 # apps/core/admin.py
 from django.contrib import admin
-from .models import Department, ProgramOutcome, DepartmentAnnouncement
+from .models import Department, ProgramOutcome, DepartmentAnnouncement, DepartmentAnnouncementReadReceipt
+
+
+@admin.register(DepartmentAnnouncementReadReceipt)
+class DepartmentAnnouncementReadReceiptAdmin(admin.ModelAdmin):
+    list_display = ("announcement", "user", "read_at")
+    list_filter = ("announcement__department", "read_at")
+    search_fields = ("announcement__title", "user__email")
+    ordering = ("-read_at",)
 
 
 @admin.register(DepartmentAnnouncement)
