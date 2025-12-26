@@ -4,11 +4,7 @@
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-<<<<<<< HEAD
   height: 100%;
-=======
-  min-height: 100vh;
->>>>>>> 3cad688b8f26fc7ae0d23c530f510eae6d3c7347
   box-shadow: var(--shadow-sm);
 }
 
@@ -63,9 +59,4 @@
   .sidebar {
     width: 200px;
   }
-<<<<<<< HEAD
 }
-=======
-}
-
->>>>>>> 3cad688b8f26fc7ae0d23c530f510eae6d3c7347
