@@ -146,3 +146,27 @@ class DepartmentAnnouncement(models.Model):
 
     def __str__(self):
         return f"{self.department.code} - {self.title}"
+
+
+class DepartmentAnnouncementReadReceipt(models.Model):
+    """Tracks which users have read which department announcements."""
+    
+    announcement = models.ForeignKey(
+        DepartmentAnnouncement,
+        on_delete=models.CASCADE,
+        related_name="read_receipts",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="department_announcement_reads",
+    )
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("announcement", "user")
+        verbose_name = "Department Announcement Read Receipt"
+        verbose_name_plural = "Department Announcement Read Receipts"
+
+    def __str__(self):
+        return f"{self.user} read {self.announcement}"

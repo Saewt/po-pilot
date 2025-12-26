@@ -1,11 +1,14 @@
-from rest_framework import viewsets, permissions
-from apps.courses.models import CourseAnnouncement
-from apps.core.models import DepartmentAnnouncement
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+
+from apps.courses.models import CourseAnnouncement, CourseAnnouncementReadReceipt
+from apps.core.models import DepartmentAnnouncement, DepartmentAnnouncementReadReceipt
 from apps.api.serializers.announcements import (
     CourseAnnouncementSerializer,
     DepartmentAnnouncementSerializer,
 )
-from rest_framework.exceptions import PermissionDenied
 
 
 class CourseAnnouncementViewSet(viewsets.ModelViewSet):
@@ -18,7 +21,7 @@ class CourseAnnouncementViewSet(viewsets.ModelViewSet):
         user = self.request.user
         qs = CourseAnnouncement.objects.select_related(
             "course_instance", "course_instance__course_template", "created_by"
-        )
+        ).prefetch_related("read_receipts")
 
         if user.is_student():
             return qs.filter(course_instance__students=user)
@@ -59,6 +62,35 @@ class CourseAnnouncementViewSet(viewsets.ModelViewSet):
 
         serializer.save(created_by=user)
 
+    @action(detail=True, methods=["patch"], url_path="mark-as-read")
+    def mark_as_read(self, request, pk=None):
+        """Mark a single course announcement as read."""
+        announcement = self.get_object()
+        CourseAnnouncementReadReceipt.objects.get_or_create(
+            announcement=announcement, user=request.user
+        )
+        return Response({"status": "marked as read"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["patch"], url_path="mark-all-read")
+    def mark_all_read(self, request):
+        """Mark all course announcements as read for the current user."""
+        announcements = self.get_queryset()
+        created_count = 0
+        for announcement in announcements:
+            _, created = CourseAnnouncementReadReceipt.objects.get_or_create(
+                announcement=announcement, user=request.user
+            )
+            if created:
+                created_count += 1
+        return Response({"marked_read": created_count})
+
+    @action(detail=False, methods=["get"], url_path="unread-count")
+    def unread_count(self, request):
+        """Get count of unread course announcements."""
+        total = self.get_queryset().count()
+        read = self.get_queryset().filter(read_receipts__user=request.user).count()
+        return Response({"unread_count": total - read})
+
 
 class DepartmentAnnouncementViewSet(viewsets.ModelViewSet):
     """ViewSet for department-wide announcements by department heads."""
@@ -68,7 +100,9 @@ class DepartmentAnnouncementViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = DepartmentAnnouncement.objects.select_related("department", "created_by")
+        qs = DepartmentAnnouncement.objects.select_related(
+            "department", "created_by"
+        ).prefetch_related("read_receipts")
 
         if user.is_student():
             return qs.filter(
@@ -104,3 +138,32 @@ class DepartmentAnnouncementViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("You are not assigned as a department head.")
 
         serializer.save(created_by=user, department=dept)
+
+    @action(detail=True, methods=["patch"], url_path="mark-as-read")
+    def mark_as_read(self, request, pk=None):
+        """Mark a single department announcement as read."""
+        announcement = self.get_object()
+        DepartmentAnnouncementReadReceipt.objects.get_or_create(
+            announcement=announcement, user=request.user
+        )
+        return Response({"status": "marked as read"}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["patch"], url_path="mark-all-read")
+    def mark_all_read(self, request):
+        """Mark all department announcements as read for the current user."""
+        announcements = self.get_queryset()
+        created_count = 0
+        for announcement in announcements:
+            _, created = DepartmentAnnouncementReadReceipt.objects.get_or_create(
+                announcement=announcement, user=request.user
+            )
+            if created:
+                created_count += 1
+        return Response({"marked_read": created_count})
+
+    @action(detail=False, methods=["get"], url_path="unread-count")
+    def unread_count(self, request):
+        """Get count of unread department announcements."""
+        total = self.get_queryset().count()
+        read = self.get_queryset().filter(read_receipts__user=request.user).count()
+        return Response({"unread_count": total - read})
