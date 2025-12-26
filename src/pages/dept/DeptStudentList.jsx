@@ -57,6 +57,7 @@ const DeptStudentList = () => {
     const loadStudents = async () => {
         try {
             setLoading(true)
+<<<<<<< HEAD
             let allStudents = []
             let page = 1
             let hasMore = true
@@ -82,6 +83,15 @@ const DeptStudentList = () => {
             }
 
             setStudents(allStudents)
+=======
+            const response = await usersAPI.list({
+                role: 'STUDENT',
+                department: user.department
+            })
+            // Handle pagination or direct array
+            const data = response.results || response
+            setStudents(Array.isArray(data) ? data : [])
+>>>>>>> 3cad688b8f26fc7ae0d23c530f510eae6d3c7347
             setSelectedIds(new Set()) // Clear selection on reload
         } catch (err) {
             console.error('Failed to load students:', err)
@@ -239,17 +249,27 @@ const DeptStudentList = () => {
         {
             header: 'Student ID',
             accessor: 'student_id',
+<<<<<<< HEAD
             render: (row) => row.student_id || 'N/A',
             sortable: true
+=======
+            render: (row) => row.student_id || 'N/A'
+>>>>>>> 3cad688b8f26fc7ae0d23c530f510eae6d3c7347
         },
         {
             header: 'Name',
             accessor: 'first_name',
             render: (row) => `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+<<<<<<< HEAD
             sortable: true
         },
         { header: 'Email', accessor: 'email', sortable: true },
         { header: 'Enrollment Year', accessor: 'enrollment_year', sortable: true },
+=======
+        },
+        { header: 'Email', accessor: 'email' },
+        { header: 'Enrollment Year', accessor: 'enrollment_year' },
+>>>>>>> 3cad688b8f26fc7ae0d23c530f510eae6d3c7347
     ]
 
     if (loading && students.length === 0 && !showRegister && !showBulkImport) return <LoadingState />
@@ -306,7 +326,10 @@ const DeptStudentList = () => {
                 columns={columns}
                 data={filteredStudents}
                 emptyMessage="No students found matching your filters."
+<<<<<<< HEAD
                 compact={true}
+=======
+>>>>>>> 3cad688b8f26fc7ae0d23c530f510eae6d3c7347
             />
 
             {/* Single Registration Modal - No Password Field */}
