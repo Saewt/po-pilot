@@ -218,6 +218,23 @@ class RBACTests(APITestCase):
         response = self.client.patch(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_instructor_user_listing(self):
+        """Test that instructors can list students in their department."""
+        url = reverse("user-list")
+        
+        # Instructor lists students
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.get_token(self.instructor)}")
+        response = self.client.get(url, {"role": "STUDENT"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Should see 'student' (same dept) but not others if we had strict isolation or if we check content
+        results = response.data["results"] if "results" in response.data else response.data
+        student_emails = [u["email"] for u in results]
+        self.assertIn(self.student.email, student_emails)
+        
+        # Should NOT see users from other departments (if any existed and logic holds)
+        # (For now just verifying access is granted, which was 403 before)
+
 class GradingApprovalTests(APITestCase):
     def setUp(self):
         self.department = Department.objects.create(name="Computer Science", code="CS")
