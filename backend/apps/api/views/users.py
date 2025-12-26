@@ -17,7 +17,7 @@ from apps.api.serializers.users import (
     BulkStudentDeleteSerializer,
     GPASerializer
 )
-from apps.api.permissions import IsDepartmentHead, IsStudent
+from apps.api.permissions import IsDepartmentHead, IsStudent, IsInstructor
 from apps.grades.calculators import AchievementCalculator
 from apps.users.models import User
 
@@ -41,6 +41,7 @@ class UserViewSet(ModelViewSet):
     ViewSet for listing and managing users.
     
     Department Heads can list and filter users in their department.
+    Instructors can list and filter users in their department (for enrollment).
     Supports filtering by role and department query parameters.
     """
     queryset = User.objects.all()
@@ -50,12 +51,14 @@ class UserViewSet(ModelViewSet):
     
     def get_permissions(self):
         """
-        - List/Retrieve: Department Head or Admin
+        - List/Retrieve: Department Head, Instructor, or Admin
         - Create: Department Head or Admin
         - Update/Delete: Admin only
         """
-        if self.action in ['list', 'retrieve', 'create', 'bulk_create_students','bulk_update_students','bulk_delete_students']:
-            permission_classes = [IsDepartmentHead | IsAdminUser]
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [IsDepartmentHead | IsInstructor | IsAdminUser]
+        elif self.action in ['create', 'bulk_create_students','bulk_update_students','bulk_delete_students']:
+             permission_classes = [IsDepartmentHead | IsAdminUser]
         else:
             permission_classes = [IsAdminUser]
         return [permission() for permission in permission_classes]
@@ -82,8 +85,8 @@ class UserViewSet(ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
         
-        # Department Heads only see their own department's users
-        if user.is_department_head() and not user.is_staff:
+        # Department Heads and Instructors only see their own department's users
+        if (user.is_department_head() or user.is_instructor()) and not user.is_staff:
             queryset = queryset.filter(department=user.department)
         
         return queryset.select_related('department')
