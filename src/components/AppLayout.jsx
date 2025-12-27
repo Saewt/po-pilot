@@ -11,7 +11,7 @@ const AppLayout = ({ children }) => {
   const { user, logout } = useAuth()
   const { unreadCount } = useNotification()
   const location = useLocation()
-  
+
   const [showAnnouncements, setShowAnnouncements] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -31,19 +31,19 @@ const AppLayout = ({ children }) => {
 
   const getPageTitle = () => {
     const path = location.pathname
-    
+
     if (path.includes('/app/dept/instructors')) return 'Instructors'
     if (path.includes('/app/dept/students')) return 'Students'
     if (path.includes('/app/dept/approvals')) return 'Approvals'
     if (path.includes('/app/dept/po-builder')) return 'PO Builder'
     if (path === '/app/dept' || path.startsWith('/app/dept/')) return 'Department Courses'
-    
+
     if (path.includes('/app/instructor/courses')) return 'My Courses'
     if (path.includes('/app/instructor/grades')) return 'Grades'
     if (path === '/app/instructor') return 'Instructor Dashboard'
-    
+
     if (path === '/app/student') return 'My Courses'
-    
+
     return 'PO Pilot'
   }
 
@@ -63,11 +63,11 @@ const AppLayout = ({ children }) => {
         <header className="app-header">
           <div className="header-container">
             <h1 className="header-title">{getPageTitle()}</h1>
-            
+
             <div className="header-actions">
               {user.role === 'DEPARTMENT_HEAD' && (
-                <button 
-                  className="icon-btn" 
+                <button
+                  className="icon-btn"
                   onClick={() => setShowAnnouncements(true)}
                   title="Manage Announcements"
                 >
@@ -77,8 +77,8 @@ const AppLayout = ({ children }) => {
                 </button>
               )}
 
-              <button 
-                className="icon-btn" 
+              <button
+                className="icon-btn"
                 onClick={() => setShowNotifications(true)}
                 title="Notifications"
               >
@@ -90,8 +90,8 @@ const AppLayout = ({ children }) => {
               </button>
 
               <div className="user-profile-container" ref={profileRef}>
-                <div 
-                  className="user-profile-pill" 
+                <div
+                  className="user-profile-pill"
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                 >
                   <div className="profile-info">
@@ -102,7 +102,7 @@ const AppLayout = ({ children }) => {
                     {getInitials()}
                   </div>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#888' }}>
-                    <path d="M6 9l6 6 6-6"/>
+                    <path d="M6 9l6 6 6-6" />
                   </svg>
                 </div>
 
@@ -114,7 +114,7 @@ const AppLayout = ({ children }) => {
                         <div className="dropdown-dept-value">{user.department_name}</div>
                       </div>
                     )}
-                    
+
                     {user.student_id && (
                       <div className="dropdown-header">
                         <div className="dropdown-dept-label">Student ID</div>
@@ -123,7 +123,7 @@ const AppLayout = ({ children }) => {
                     )}
 
                     <div style={{ padding: '0.5rem' }}>
-                      <button 
+                      <button
                         className="dropdown-item danger"
                         onClick={logout}
                       >
@@ -141,7 +141,7 @@ const AppLayout = ({ children }) => {
             </div>
           </div>
         </header>
-        
+
         <main className="app-main">
           {children}
         </main>

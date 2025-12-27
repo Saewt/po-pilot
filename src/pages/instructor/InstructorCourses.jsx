@@ -25,8 +25,15 @@ const InstructorCourses = () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await coursesAPI.list()
-      setCourses(response.results || [])
+      const listResponse = await coursesAPI.list()
+      const courseList = listResponse.results || []
+
+      // Fetch details for each course to get student counts
+      const detailedCourses = await Promise.all(
+        courseList.map(course => coursesAPI.get(course.id))
+      )
+
+      setCourses(detailedCourses)
     } catch (err) {
       console.error('Failed to load courses:', err)
       setError(err.response?.data?.detail || 'Failed to load courses')
@@ -45,9 +52,9 @@ const InstructorCourses = () => {
       const searchLower = searchTerm.toLowerCase()
       const code = (course.full_code || course.code || '').toLowerCase()
       const name = (course.course_name || course.course_template?.name || '').toLowerCase()
-      
-      const matchesSearch = !searchTerm || 
-        code.includes(searchLower) || 
+
+      const matchesSearch = !searchTerm ||
+        code.includes(searchLower) ||
         name.includes(searchLower)
 
       const matchesSemester = !semesterFilter || course.semester === semesterFilter
@@ -76,7 +83,7 @@ const InstructorCourses = () => {
   if (error) return <ErrorState error={error} onRetry={loadCourses} />
 
   const columns = [
-    { 
+    {
       header: 'Course',
       accessor: 'full_code',
       render: (row) => (
@@ -104,10 +111,10 @@ const InstructorCourses = () => {
       accessor: 'students_count',
       render: (row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontWeight: '500' }}>
-                {Array.isArray(row.students) ? row.students.length : (row.students_count || 0)}
-            </span>
-            <span style={{ fontSize: '0.8rem', color: '#888' }}>enrolled</span>
+          <span style={{ fontWeight: '500' }}>
+            {Array.isArray(row.students) ? row.students.length : (row.students_count || 0)}
+          </span>
+          <span style={{ fontSize: '0.8rem', color: '#888' }}>enrolled</span>
         </div>
       )
     },
@@ -122,13 +129,13 @@ const InstructorCourses = () => {
               navigate(`/app/instructor/courses/${row.id}/lo-po`)
             }}
             style={{
-                padding: '0.25rem 0.75rem',
-                fontSize: '0.875rem',
-                backgroundColor: '#e3f2fd',
-                color: '#1565c0',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#e3f2fd',
+              color: '#1565c0',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
             }}
           >
             Outcomes
@@ -139,13 +146,13 @@ const InstructorCourses = () => {
               navigate(`/app/instructor/courses/${row.id}/students`)
             }}
             style={{
-                padding: '0.25rem 0.75rem',
-                fontSize: '0.875rem',
-                backgroundColor: '#f3e5f5',
-                color: '#7b1fa2',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#f3e5f5',
+              color: '#7b1fa2',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
             }}
           >
             Students
@@ -153,19 +160,53 @@ const InstructorCourses = () => {
           <button
             onClick={(e) => {
               e.stopPropagation()
+              navigate(`/app/instructor/courses/${row.id}/enroll`)
+            }}
+            style={{
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#e8f5e9',
+              color: '#2e7d32',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Enroll
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
               navigate(`/app/instructor/courses/${row.id}/assessments`)
             }}
             style={{
-                padding: '0.25rem 0.75rem',
-                fontSize: '0.875rem',
-                backgroundColor: '#e0f2f1',
-                color: '#00695c',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#e0f2f1',
+              color: '#00695c',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
             }}
           >
             Assessments
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/app/instructor/courses/${row.id}/grades`)
+            }}
+            style={{
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.875rem',
+              backgroundColor: '#fff3e0',
+              color: '#e65100',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Grades
           </button>
         </div>
       )
@@ -175,7 +216,7 @@ const InstructorCourses = () => {
   return (
     <div className="page-container">
       <h1 className="page-title">My Courses</h1>
-      
+
       <InstructorCoursesToolbar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -187,8 +228,8 @@ const InstructorCourses = () => {
         onReset={resetFilters}
       />
 
-      <DataTable 
-        columns={columns} 
+      <DataTable
+        columns={columns}
         data={filteredCourses}
         emptyMessage="No courses found."
       />

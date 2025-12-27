@@ -249,7 +249,7 @@ const CourseManagerModal = ({ onClose, onCourseCreated, editInstance = null }) =
                     />
                 </div>
                 <div className="form-group">
-                    <label>Target Year (Optional)</label>
+                    <label>Target Year</label>
                     <input
                         type="number"
                         value={templateForm.target_class_year}

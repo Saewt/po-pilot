@@ -13,11 +13,11 @@ import '../../styles/pages.css';
 const DeptCourses = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [courses, setCourses] = useState([]);
-  
+
   const [showModal, setShowModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [courseToEdit, setCourseToEdit] = useState(null);
@@ -38,7 +38,7 @@ const DeptCourses = () => {
       setError(null);
       const response = await coursesAPI.list();
       const rawCourses = response.results || [];
-      
+
       const enriched = await Promise.all(
         rawCourses.map(async (c) => {
           try {
@@ -60,7 +60,7 @@ const DeptCourses = () => {
   };
 
   const handleCourseCreated = () => {
-    loadCourses(); 
+    loadCourses();
     setCourseToEdit(null);
   };
 
@@ -80,7 +80,7 @@ const DeptCourses = () => {
 
   const filterOptions = useMemo(() => {
     const years = [...new Set(courses.map(c => c.year))].sort((a, b) => b - a);
-    
+
     const targetYears = [...new Set(courses.map(c => c.course_template?.target_class_year).filter(Boolean))].sort((a, b) => a - b);
 
     const instructorsMap = new Map();
@@ -90,7 +90,7 @@ const DeptCourses = () => {
       }
     });
     const instructors = Array.from(instructorsMap.values());
-    
+
     return { years, instructors, targetYears };
   }, [courses]);
 
@@ -99,19 +99,19 @@ const DeptCourses = () => {
       const searchLower = searchTerm.toLowerCase();
       const code = (course.full_code || course.code || '').toLowerCase();
       const name = (course.course_template?.name || '').toLowerCase();
-      const instructorName = course.instructor 
-        ? `${course.instructor.first_name} ${course.instructor.last_name}`.toLowerCase() 
+      const instructorName = course.instructor
+        ? `${course.instructor.first_name} ${course.instructor.last_name}`.toLowerCase()
         : '';
-        
-      const matchesSearch = !searchTerm || 
-        code.includes(searchLower) || 
-        name.includes(searchLower) || 
+
+      const matchesSearch = !searchTerm ||
+        code.includes(searchLower) ||
+        name.includes(searchLower) ||
         instructorName.includes(searchLower);
 
       const matchesSemester = !semesterFilter || course.semester === semesterFilter;
       const matchesYear = !yearFilter || String(course.year) === String(yearFilter);
       const matchesInstructor = !instructorFilter || (course.instructor && String(course.instructor.id) === String(instructorFilter));
-      
+
       const matchesTargetYear = !targetYearFilter || String(course.course_template?.target_class_year) === String(targetYearFilter);
 
       return matchesSearch && matchesSemester && matchesYear && matchesInstructor && matchesTargetYear;
@@ -136,7 +136,7 @@ const DeptCourses = () => {
   };
 
   const columns = [
-    { 
+    {
       header: 'Course',
       accessor: 'full_code',
       render: (row) => (
@@ -154,8 +154,8 @@ const DeptCourses = () => {
       header: 'Target Year',
       accessor: 'course_template.target_class_year',
       render: (row) => (
-        row.course_template?.target_class_year 
-          ? <span className="badge" style={{ backgroundColor: '#f5f5f5', color: '#666' }}>Year {row.course_template.target_class_year}</span> 
+        row.course_template?.target_class_year
+          ? <span className="badge" style={{ backgroundColor: '#f5f5f5', color: '#666' }}>Year {row.course_template.target_class_year}</span>
           : '-'
       )
     },
@@ -202,10 +202,10 @@ const DeptCourses = () => {
       accessor: 'students_count',
       render: (row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontWeight: '500' }}>
-                {Array.isArray(row.students) ? row.students.length : (row.students_count || 0)}
-            </span>
-            <span style={{ fontSize: '0.8rem', color: '#888' }}>enrolled</span>
+          <span style={{ fontWeight: '500' }}>
+            {Array.isArray(row.students) ? row.students.length : (row.students_count || 0)}
+          </span>
+          <span style={{ fontSize: '0.8rem', color: '#888' }}>enrolled</span>
         </div>
       )
     },
@@ -231,7 +231,7 @@ const DeptCourses = () => {
           >
             View
           </button>
-          
+
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -285,20 +285,20 @@ const DeptCourses = () => {
     <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="page-title">Department Courses</h1>
-        <button 
-          className="btn btn-primary" 
+        <button
+          className="btn btn-primary"
           onClick={() => {
             setCourseToEdit(null);
             setShowModal(true);
           }}
           style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <span style={{ fontSize: '1.2rem', lineHeight: '1' }}>+</span> 
+          <span style={{ fontSize: '1.2rem', lineHeight: '1' }}>+</span>
           New Course Session
         </button>
       </div>
 
-      <DeptCoursesToolbar 
+      <DeptCoursesToolbar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         semesterFilter={semesterFilter}
@@ -315,12 +315,12 @@ const DeptCourses = () => {
         onReset={resetFilters}
       />
 
-      <DataTable 
-        columns={columns} 
+      <DataTable
+        columns={columns}
         data={filteredCourses}
         emptyMessage={
-          courses.length === 0 
-            ? "No courses found. Create your first course session!" 
+          courses.length === 0
+            ? "No courses found. Create your first course session!"
             : "No courses match your search filters."
         }
       />

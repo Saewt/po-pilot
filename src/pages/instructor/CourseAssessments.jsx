@@ -125,13 +125,10 @@ export default function CourseAssessments() {
           <h1 className="page-title">{course.full_code || course.code} - Assessments</h1>
           <p className="page-subtitle">Manage course assessments and weights</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          + Create Assessment
-        </button>
+
       </div>
+
+
 
       <div className="info-card mb-6">
         <div className="flex justify-between items-center">
@@ -153,6 +150,15 @@ export default function CourseAssessments() {
               : `Total weight exceeds 100% by ${totalWeight - 100}%. Please adjust.`}
           </p>
         )}
+      </div>
+
+      <div className="mb-6 flex justify-end">
+        <button
+          className="btn btn-primary"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          + Create Assessment
+        </button>
       </div>
 
       <div className="info-card p-0 overflow-hidden">

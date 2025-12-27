@@ -290,3 +290,376 @@
 }
 
 
+
+/* LO-PO Layout */
+
+.lopo-grid {
+  display: grid;
+  grid-template-columns: 30% 40% 30%;
+  gap: var(--spacing-lg);
+  flex: 1;
+  min-height: 0;
+  padding-bottom: var(--spacing-lg);
+  height: 100%;
+}
+
+.lopo-column {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+}
+
+.lopo-column-header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-tertiary);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.lopo-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.lopo-empty {
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  margin-top: var(--spacing-lg);
+}
+
+.lopo-item {
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--color-bg-primary);
+}
+
+.lopo-item:hover {
+  border-color: var(--color-primary-light, #90caf9);
+  background-color: var(--color-bg-tertiary);
+}
+
+.lopo-item.active {
+  border-color: var(--color-primary);
+  background-color: #e3f2fd; /* Light blue tint */
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.lopo-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.lopo-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.lopo-badge.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.lopo-item-description {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Mapping Station */
+.lopo-mapping-station {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-bg-tertiary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-lg);
+  height: 100%;
+}
+
+.mapping-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-bg-primary);
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
+}
+
+.mapping-title {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: var(--spacing-lg);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: var(--spacing-md);
+}
+
+.mapping-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.mapping-selection label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-xs);
+  letter-spacing: 0.5px;
+}
+
+.selection-box {
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background-color: var(--color-bg-tertiary);
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.selection-box.filled {
+  border-color: var(--color-primary);
+  background-color: #e3f2fd;
+}
+
+.selection-text {
+  font-weight: 600;
+  color: var(--color-primary);
+  font-size: 1.1rem;
+}
+
+.selection-placeholder {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.mapping-arrow {
+  display: flex;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  font-size: 1.5rem;
+  margin: -10px 0;
+}
+
+.mapping-weight-section {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--spacing-lg);
+  text-align: center;
+}
+
+.mapping-weight-section label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-secondary);
+}
+
+.weight-input {
+  width: 100%;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  color: var(--color-text-primary);
+}
+
+.weight-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+.btn-block {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: 1rem;
+  justify-content: center;
+}
+
+.mapping-exists-badge {
+  text-align: center;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid #c8e6c9;
+  margin-top: var(--spacing-sm);
+}
+
+/* Compact LO-PO Overrides */
+.lopo-grid {
+  gap: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+}
+
+.lopo-column-header {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.9rem;
+}
+
+.lopo-list {
+  padding: var(--spacing-sm);
+  gap: var(--spacing-xs);
+}
+
+.lopo-item {
+  padding: var(--spacing-sm);
+}
+
+.lopo-item-header {
+  margin-bottom: 2px;
+}
+
+.lopo-badge {
+  padding: 1px 6px;
+  font-size: 0.8rem;
+}
+
+.lopo-item-description {
+  font-size: 0.8rem;
+  -webkit-line-clamp: 2;
+}
+
+.lopo-mapping-station {
+  padding: var(--spacing-md);
+}
+
+.mapping-card {
+  padding: var(--spacing-lg);
+  max-width: 300px;
+}
+
+.mapping-title {
+  margin-bottom: var(--spacing-md);
+  font-size: 1.1rem;
+}
+
+.mapping-content {
+  gap: var(--spacing-md);
+}
+
+.selection-box {
+  min-height: 40px;
+  padding: var(--spacing-sm);
+}
+
+.selection-text {
+  font-size: 1rem;
+}
+
+.mapping-weight-section {
+  padding-top: var(--spacing-md);
+}
+
+.weight-input {
+  padding: var(--spacing-sm);
+  font-size: 1.25rem;
+}
+
+/* Summary List Styles */
+.lopo-summary {
+  margin-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-lg);
+  overflow-y: auto;
+  flex: 1; /* Allow it to take up remaining Vertical space if needed, though we likely need to adjust the main container layout */
+  background-color: var(--color-bg-primary);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-md);
+}
+
+.lopo-summary h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+}
+
+.summary-po-item {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.summary-po-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.summary-po-header {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.summary-lo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-left: var(--spacing-md);
+}
+
+.summary-lo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+}
+
+.summary-lo-weight {
+  font-weight: 700;
+  color: #0d47a1;
+}

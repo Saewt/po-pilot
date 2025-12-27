@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+
+import { useParams, useNavigate } from 'react-router-dom'
 import { coursesAPI } from '../../api/courses'
-import { usersAPI } from '../../api/users'
-import { useAuth } from '../../context/AuthContext'
+
 import { useToast } from '../../context/ToastContext'
 import LoadingState from '../../components/LoadingState'
 import ErrorState from '../../components/ErrorState'
 import DataTable from '../../components/DataTable'
+import ConfirmationModal from '../../components/ConfirmationModal'
 import '../../styles/pages.css'
 
 /**
@@ -14,7 +15,7 @@ import '../../styles/pages.css'
  * Shows enrolled students for a course and allows enrolling new ones
  */
 const InstructorCourseStudents = () => {
-  const { user } = useAuth()
+  const navigate = useNavigate()
   const { addToast } = useToast()
   const { courseId } = useParams()
 
@@ -23,10 +24,9 @@ const InstructorCourseStudents = () => {
 
   const [course, setCourse] = useState(null)
   const [students, setStudents] = useState([])
-  const [deptStudents, setDeptStudents] = useState([])
 
-  const [studentIdsInput, setStudentIdsInput] = useState('')
-  const [enrolling, setEnrolling] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -39,16 +39,11 @@ const InstructorCourseStudents = () => {
 
       const courseData = await coursesAPI.get(courseId)
       setCourse(courseData)
-      setStudents(courseData.students || [])
-
-      if (user?.department) {
-        try {
-          const studentsRes = await usersAPI.list({ role: 'STUDENT', department: user.department })
-          setDeptStudents(studentsRes.results || studentsRes || [])
-        } catch (uErr) {
-          console.warn('Failed to load department students for mapping:', uErr)
-        }
-      }
+      const processedStudents = (courseData.students || []).map(s => ({
+        ...s,
+        full_name: `${s.first_name || ''} ${s.last_name || ''}`.trim()
+      }))
+      setStudents(processedStudents)
 
     } catch (err) {
       console.error('Failed to load course data:', err)
@@ -58,64 +53,26 @@ const InstructorCourseStudents = () => {
     }
   }
 
-  const handleEnroll = async () => {
-    if (!studentIdsInput.trim()) return
+  const handleRemoveClick = (student) => {
+    setStudentToDelete(student)
+    setIsDeleteModalOpen(true)
+  }
 
+  const confirmRemove = async () => {
+    if (!studentToDelete) return
     try {
-      setEnrolling(true)
-
-      const inputIds = studentIdsInput
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s)
-
-      if (inputIds.length === 0) {
-        setEnrolling(false)
-        return
-      }
-
-      // Map Student IDs (e.g., "900123") to Internal IDs
-      const internalIds = []
-      const notFoundIds = []
-
-      if (deptStudents.length === 0) {
-        addToast('Unable to verify Student IDs (cannot list department students).', 'error')
-        setEnrolling(false)
-        return
-      }
-
-      inputIds.forEach(sid => {
-        const student = deptStudents.find(s => s.student_id === sid)
-        if (student) {
-          internalIds.push(student.student_id)
-        } else {
-          notFoundIds.push(sid)
-        }
-      })
-
-      if (notFoundIds.length > 0) {
-        addToast(`Student IDs not found: ${notFoundIds.join(', ')}`, 'error')
-        setEnrolling(false)
-        return
-      }
-
-      await coursesAPI.enroll_students(courseId, { student_ids: internalIds })
-
-      addToast('Students enrolled successfully!', 'success')
-      setStudentIdsInput('')
-
-      // Reload data
-      const updatedCourse = await coursesAPI.get(courseId)
-      setCourse(updatedCourse)
-      setStudents(updatedCourse.students || [])
-
+      await coursesAPI.unenroll_student(courseId, { student_id: studentToDelete.student_id })
+      addToast('Student removed successfully', 'success')
+      setIsDeleteModalOpen(false)
+      setStudentToDelete(null)
+      loadData()
     } catch (err) {
-      console.error('Enrollment failed:', err)
-      addToast(err.response?.data?.detail || 'Failed to enroll students', 'error')
-    } finally {
-      setEnrolling(false)
+      console.error(err)
+      addToast('Failed to remove student', 'error')
     }
   }
+
+
 
   if (loading && !course) {
     return <LoadingState />
@@ -135,84 +92,78 @@ const InstructorCourseStudents = () => {
 
   return (
     <div className="page-container">
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 className="page-title" style={{ marginBottom: '0.5rem' }}>{course.full_code || course.code} - {courseName}</h1>
-        <div style={{ display: 'flex', gap: '1rem', color: '#64748b' }}>
-          <span className="badge" style={{ background: '#e2e8f0', color: '#475569' }}>
-            {course.semester} {course.year}
-          </span>
-          <span className="badge" style={{ background: '#dbeafe', color: '#1e40af' }}>
-            {course.students_count || students.length} Students
-          </span>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', alignItems: 'start' }}>
-        {/* Left Column: Enrollment */}
-        <div className="info-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
-          <h2 className="section-title" style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1.1rem' }}>
-            Enroll New Students
-          </h2>
-
-          <div className="form-group">
-            <label style={{ fontWeight: 500, marginBottom: '0.5rem', display: 'block' }}>Student IDs</label>
-            <input
-              type="text"
-              value={studentIdsInput}
-              onChange={(e) => setStudentIdsInput(e.target.value)}
-              placeholder="e.g. 20205011, 20205012"
-              disabled={enrolling}
-              style={{ width: '100%', padding: '0.75rem', marginBottom: '8px' }}
-            />
-            <span className="text-secondary" style={{ fontSize: '0.85rem' }}>
-              Enter comma-separated IDs.
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div>
+          <h1 className="page-title">{course.full_code || course.code} - {courseName}</h1>
+          <div style={{ display: 'flex', gap: '1rem', color: '#64748b' }}>
+            <span className="badge" style={{ background: '#e2e8f0', color: '#475569' }}>
+              {course.semester} {course.year}
+            </span>
+            <span className="badge" style={{ background: '#dbeafe', color: '#1e40af' }}>
+              {course.students_count || students.length} Students
             </span>
           </div>
-
-          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              className="btn btn-primary"
-              onClick={handleEnroll}
-              disabled={enrolling || !studentIdsInput.trim()}
-              style={{ width: '100%' }}
-            >
-              {enrolling ? 'Enrolling...' : 'Enroll Students'}
-            </button>
-          </div>
         </div>
-
-        {/* Right Column: List */}
-        <div className="info-card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div style={{ padding: '1.5rem 1.5rem 0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="section-title" style={{ margin: 0, fontSize: '1.1rem' }}>Enrolled Student List</h2>
-          </div>
-
-          {students.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-              No students enrolled yet.
-            </div>
-          ) : (
-            <DataTable
-              columns={[
-                {
-                  header: 'Student ID',
-                  accessor: 'student_id',
-                  render: r => <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{r.student_id || 'N/A'}</span>
-                },
-                {
-                  header: 'Name',
-                  accessor: 'id',
-                  render: r => <span style={{ fontWeight: 500 }}>{`${r.first_name || ''} ${r.last_name || ''}`.trim() || 'N/A'}</span>
-                },
-                { header: 'Email', accessor: 'email' },
-              ]}
-              data={students}
-              pagination={true}
-              itemsPerPage={10}
-            />
-          )}
-        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => navigate(`/app/instructor/courses/${courseId}/enroll`)}
+        >
+          Enroll Students
+        </button>
       </div>
+
+      <div className="info-card p-0 overflow-hidden">
+        {students.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+            No students enrolled yet.
+          </div>
+        ) : (
+          <DataTable
+            columns={[
+              {
+                header: 'Student ID',
+                accessor: 'student_id',
+                render: r => <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{r.student_id || 'N/A'}</span>,
+                sortable: true
+              },
+              {
+                header: 'Name',
+                accessor: 'full_name',
+                render: r => <span style={{ fontWeight: 500 }}>{r.full_name || 'N/A'}</span>,
+                sortable: true
+              },
+              { header: 'Email', accessor: 'email', sortable: true },
+              { header: 'Enrollment Year', accessor: 'enrollment_year', render: r => r.enrollment_year || '-', sortable: true },
+              { header: 'Class Year', accessor: 'class_year', render: r => r.class_year || '-', sortable: true },
+              {
+                header: 'Actions',
+                accessor: 'id',
+                render: (row) => (
+                  <button
+                    onClick={() => handleRemoveClick(row)}
+                    className="btn btn-sm btn-danger"
+                  >
+                    Remove
+                  </button>
+                )
+              }
+            ]}
+            data={students}
+            pagination={true}
+            itemsPerPage={10}
+          />
+        )}
+      </div>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmRemove}
+        title="Remove Student"
+        message={`Are you sure you want to remove ${studentToDelete?.full_name} from this course?`}
+        confirmText="Remove"
+        confirmVariant="danger"
+      />
     </div>
   )
 }

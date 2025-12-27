@@ -6,36 +6,61 @@ import { loPoContributionsAPI } from '../../api/loPoContributions'
 import { programOutcomesAPI } from '../../api/programOutcomes'
 import LoadingState from '../../components/LoadingState'
 import ErrorState from '../../components/ErrorState'
-import DataTable from '../../components/DataTable'
-import ConfirmationModal from '../../components/ConfirmationModal'
 import { useToast } from '../../context/ToastContext'
 import '../../styles/pages.css'
 
 const InstructorCourseLoPo = () => {
   const { courseId } = useParams()
   const { addToast } = useToast()
+
+  // Data State
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [course, setCourse] = useState(null)
-  const [loPoMapping, setLoPoMapping] = useState([])
+  const [learningOutcomes, setLearningOutcomes] = useState([])
   const [programOutcomes, setProgramOutcomes] = useState([])
+  const [contributions, setContributions] = useState([])
 
-  const [isLoModalOpen, setIsLoModalOpen] = useState(false)
-  const [currentLo, setCurrentLo] = useState(null)
-  const [loForm, setLoForm] = useState({ code: '', description: '' })
+  // Selection State
+  const [selectedLoId, setSelectedLoId] = useState(null)
+  const [selectedPoId, setSelectedPoId] = useState(null)
+  const [weight, setWeight] = useState('')
+  const [existingMappingId, setExistingMappingId] = useState(null)
 
-  const [isMappingModalOpen, setIsMappingModalOpen] = useState(false)
-  const [currentMappingLo, setCurrentMappingLo] = useState(null)
-  const [editingMappingId, setEditingMappingId] = useState(null)
-  const [mappingForm, setMappingForm] = useState({ program_outcome: '', weight: '' })
-
-  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, id: null })
-
+  // UI State
   const [submitting, setSubmitting] = useState(false)
+
+  // Create LO Modal State
+  const [isLoModalOpen, setIsLoModalOpen] = useState(false)
+  const [loForm, setLoForm] = useState({ code: '', description: '' })
+  const [creatingLo, setCreatingLo] = useState(false)
 
   useEffect(() => {
     loadCourseData()
   }, [courseId])
+
+  // Effect to CHECK for existing mapping when selection changes
+  useEffect(() => {
+    if (selectedLoId && selectedPoId) {
+      const mapping = contributions.find(c => {
+        const cLoId = typeof c.learning_outcome === 'object' ? c.learning_outcome.id : c.learning_outcome
+        const cPoId = typeof c.program_outcome === 'object' ? c.program_outcome.id : c.program_outcome
+        return String(cLoId) === String(selectedLoId) && String(cPoId) === String(selectedPoId)
+      })
+
+      if (mapping) {
+        setWeight(mapping.weight)
+        setExistingMappingId(mapping.id)
+      } else {
+        setWeight('')
+        setExistingMappingId(null)
+      }
+    } else {
+      setWeight('')
+      setExistingMappingId(null)
+    }
+  }, [selectedLoId, selectedPoId, contributions])
+
 
   const loadCourseData = async () => {
     try {
@@ -52,168 +77,94 @@ const InstructorCourseLoPo = () => {
         courseTemplateId = courseData.course_template
       }
 
-      if (!courseTemplateId) {
-        throw new Error('Course Template ID could not be determined.')
-      }
+      if (!courseTemplateId) throw new Error('Course Template ID not found.')
 
-      const [loResponse, contributionsResponse, poResponse] = await Promise.all([
+      const [loRes, contribRes, poRes] = await Promise.all([
         learningOutcomesAPI.list({ course_template: courseTemplateId }),
         loPoContributionsAPI.list({ course_template_id: courseTemplateId }),
         programOutcomesAPI.list()
       ])
 
-      const learningOutcomes = loResponse.results || []
-      const allContributions = contributionsResponse.results || []
-      const allPOs = poResponse.results || []
+      // Sort LOs
+      const los = loRes.results || loRes || []
+      los.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true }))
+      setLearningOutcomes(los)
 
-      setProgramOutcomes(allPOs)
-
-      const mapping = learningOutcomes.map(lo => {
-        const contributions = allContributions.filter(
-          c => c.learning_outcome === lo.id ||
-            (typeof c.learning_outcome === 'object' && c.learning_outcome.id === lo.id)
-        )
-        return { lo, contributions }
-      })
-
-      mapping.sort((a, b) => {
-        const codeA = a.lo.full_code || a.lo.code || ''
-        const codeB = b.lo.full_code || b.lo.code || ''
-        return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' })
-      })
-
-      setLoPoMapping(mapping)
+      setContributions(contribRes.results || contribRes || [])
+      setProgramOutcomes(poRes.results || poRes || [])
 
     } catch (err) {
-      console.error('Failed to load course data:', err)
-      // Improved error handling: prefer err.message for client-side errors
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to load course data'
-      setError(errorMessage)
+      console.error(err)
+      setError(err.response?.data?.detail || err.message || 'Failed to load data')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleOpenCreate = () => {
-    setCurrentLo(null)
-    setLoForm({ code: '', description: '' })
-    setIsLoModalOpen(true)
+  const handleSaveMapping = async () => {
+    if (!selectedLoId || !selectedPoId) {
+      addToast('Please select both a Learning Outcome and a Program Outcome', 'error')
+      return
+    }
+    if (!weight || isNaN(weight) || weight < 1 || weight > 5) {
+      addToast('Please enter a valid weight (1-5)', 'error')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const payload = {
+        learning_outcome_id: selectedLoId,
+        program_outcome_id: selectedPoId,
+        weight: weight.toString()
+      }
+
+      if (existingMappingId) {
+        await loPoContributionsAPI.update(existingMappingId, payload)
+        addToast('Mapping updated successfully', 'success')
+      } else {
+        await loPoContributionsAPI.create(payload)
+        addToast('Mapping created successfully', 'success')
+      }
+
+      // Refresh contributions
+      const courseTemplateId = typeof course.course_template === 'object' ? course.course_template.id : course.course_template
+      const contribRes = await loPoContributionsAPI.list({ course_template_id: courseTemplateId })
+      setContributions(contribRes.results || contribRes || [])
+
+    } catch (err) {
+      console.error(err)
+      addToast('Failed to save mapping', 'error')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleOpenEdit = (lo) => {
-    setCurrentLo(lo)
-    setLoForm({
-      code: lo.code || '',
-      description: lo.description || ''
-    })
-    setIsLoModalOpen(true)
-  }
-
-  const handleSaveLo = async (e) => {
+  const handleCreateLo = async (e) => {
     e.preventDefault()
     if (!loForm.code.trim() || !loForm.description.trim()) {
       addToast('Code and Description are required', 'error')
       return
     }
 
-    setSubmitting(true)
+    setCreatingLo(true)
     try {
-      const courseTemplateId = typeof course.course_template === 'object'
-        ? course.course_template.id
-        : course.course_template
-
-      if (currentLo) {
-        await learningOutcomesAPI.update(currentLo.id, {
-          ...loForm,
-          course_template: courseTemplateId
-        })
-        addToast('Learning Outcome updated', 'success')
-      } else {
-        await learningOutcomesAPI.create({
-          ...loForm,
-          course_template: courseTemplateId
-        })
-        addToast('Learning Outcome created', 'success')
-      }
+      const courseTemplateId = typeof course.course_template === 'object' ? course.course_template.id : course.course_template
+      await learningOutcomesAPI.create({ ...loForm, course_template: courseTemplateId })
+      addToast('Learning Outcome created', 'success')
       setIsLoModalOpen(false)
-      loadCourseData()
+      setLoForm({ code: '', description: '' })
+
+      // Refresh LOs
+      const loRes = await learningOutcomesAPI.list({ course_template: courseTemplateId })
+      const los = loRes.results || loRes || []
+      los.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true }))
+      setLearningOutcomes(los)
     } catch (err) {
       console.error(err)
-      addToast('Failed to save Learning Outcome', 'error')
+      addToast('Failed to create LO', 'error')
     } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleOpenMappingModal = (lo, mapping = null) => {
-    setCurrentMappingLo(lo)
-    if (mapping) {
-      setEditingMappingId(mapping.id)
-      const poId = typeof mapping.program_outcome === 'object' ? mapping.program_outcome.id : mapping.program_outcome
-      setMappingForm({
-        program_outcome: poId,
-        weight: mapping.weight
-      })
-    } else {
-      setEditingMappingId(null)
-      setMappingForm({ program_outcome: '', weight: '' })
-    }
-    setIsMappingModalOpen(true)
-  }
-
-  const handleSaveMapping = async (e) => {
-    e.preventDefault()
-    if (!mappingForm.program_outcome || !mappingForm.weight) {
-      addToast('Please select a PO and enter a weight', 'error')
-      return
-    }
-
-    const weight = parseFloat(mappingForm.weight)
-    if (isNaN(weight) || weight < 1 || weight > 5) {
-      addToast('Weight must be between 1 and 5', 'error')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const data = {
-        learning_outcome: currentMappingLo.id,
-        program_outcome: mappingForm.program_outcome,
-        weight: mappingForm.weight
-      }
-
-      if (editingMappingId) {
-        await loPoContributionsAPI.update(editingMappingId, data)
-        addToast('Mapping updated', 'success')
-      } else {
-        await loPoContributionsAPI.create(data)
-        addToast('Mapping created', 'success')
-      }
-      setIsMappingModalOpen(false)
-      loadCourseData()
-    } catch (err) {
-      console.error(err)
-      const msg = err.response?.data?.detail || 'Failed to save mapping'
-      addToast(msg, 'error')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleDeleteClick = (id) => {
-    setDeleteConfirmation({ isOpen: true, id })
-  }
-
-  const handleConfirmDelete = async () => {
-    try {
-      await loPoContributionsAPI.delete(deleteConfirmation.id)
-      addToast('Mapping deleted', 'success')
-      loadCourseData()
-    } catch (err) {
-      console.error(err)
-      addToast('Failed to delete mapping', 'error')
-    } finally {
-      setDeleteConfirmation({ isOpen: false, id: null })
+      setCreatingLo(false)
     }
   }
 
@@ -221,130 +172,172 @@ const InstructorCourseLoPo = () => {
   if (error) return <ErrorState error={error} onRetry={loadCourseData} />
   if (!course) return <div>Course not found</div>
 
-  const courseName = typeof course.course_template === 'object'
-    ? course.course_template.name
-    : 'N/A'
+  const getLoById = (id) => learningOutcomes.find(lo => String(lo.id) === String(id))
+  const getPoById = (id) => programOutcomes.find(po => String(po.id) === String(id))
 
   return (
-    <div className="page-container">
-      <div className="flex justify-between items-center mb-6">
+    <div className="page-container" style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexShrink: 0 }}>
         <div>
-          <h1 className="page-title">{course.full_code || course.code} - {courseName}</h1>
-          <p className="page-subtitle">Manage Learning Outcomes and view PO Mappings</p>
+          <h1 className="page-title" style={{ fontSize: '1.5rem', marginBottom: '0' }}>{course.full_code || course.code} - Redesigned Mapping</h1>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleOpenCreate}
-        >
-          + New Learning Outcome
-        </button>
+
       </div>
 
-      {loPoMapping.length === 0 ? (
-        <div className="empty-state p-12 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-          <p className="text-secondary mb-4">No Learning Outcomes defined for this course yet.</p>
-          <button className="btn btn-primary" onClick={handleOpenCreate}>Create Your First LO</button>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-8">
-          {loPoMapping.map((item, idx) => {
-            const lo = item.lo
-            const contributions = item.contributions
-
-            return (
-              <div key={idx} className="info-card p-0 overflow-hidden border border-gray-200 shadow-sm">
-                <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-gray-700 bg-gray-200 px-2 py-1 rounded text-sm">
-                      {lo.full_code || lo.code}
-                    </span>
-                    <h3 className="m-0 text-lg font-medium text-gray-800">
-                      {lo.description}
-                    </h3>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-sm text-indigo-600 hover:text-indigo-800 font-medium px-3 py-1 rounded hover:bg-indigo-50 transition-colors"
-                      onClick={() => handleOpenMappingModal(lo)}
-                    >
-                      Map to PO
-                    </button>
-                    <button
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded hover:bg-blue-50 transition-colors"
-                      onClick={() => handleOpenEdit(lo)}
-                    >
-                      Edit LO
-                    </button>
-                  </div>
+      <div className="lopo-grid" style={{ flex: '0 0 55%', minHeight: '300px' }}>
+        {/* Left Column - LOs */}
+        <div className="lopo-column">
+          <div className="lopo-column-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Learning Outcomes</span>
+            <button onClick={() => setIsLoModalOpen(true)} className="btn btn-primary" style={{ padding: '2px 8px', fontSize: '0.75rem', minHeight: 'auto', height: 'auto' }}>+ New</button>
+          </div>
+          <div className="lopo-list">
+            {learningOutcomes.length === 0 && (
+              <p className="lopo-empty">No Learning Outcomes yet.</p>
+            )}
+            {learningOutcomes.map(lo => (
+              <div
+                key={lo.id}
+                onClick={() => setSelectedLoId(lo.id)}
+                className={`lopo-item ${selectedLoId === lo.id ? 'active' : ''}`}
+              >
+                <div className="lopo-item-header">
+                  <span className={`lopo-badge ${selectedLoId === lo.id ? 'active' : ''}`}>
+                    {lo.full_code || lo.code}
+                  </span>
                 </div>
-
-                {contributions.length === 0 ? (
-                  <div className="p-6 text-gray-400 italic text-center text-sm">
-                    No Program Outcome contributions mapped yet.
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={[
-                      {
-                        header: 'PO Code',
-                        accessor: 'program_outcome',
-                        render: r => {
-                          const po = r.program_outcome
-                          return <span className="font-semibold">{po?.full_code || po?.code || 'N/A'}</span>
-                        }
-                      },
-                      {
-                        header: 'Description',
-                        accessor: 'program_outcome',
-                        render: r => r.program_outcome?.description || 'N/A'
-                      },
-                      { header: 'Weight (1-5)', accessor: 'weight' },
-                      {
-                        header: 'Status',
-                        accessor: 'approval_status',
-                        render: r => {
-                          if (r.approval_status === 'APPROVED') return <span className="badge badge-approved">Approved</span>
-                          if (r.approval_status === 'DECLINED') return <span className="badge badge-error">Declined</span>
-                          return <span className="badge badge-pending">Pending</span>
-                        }
-                      },
-                      {
-                        header: 'Actions',
-                        render: (r) => (
-                          <div className="flex gap-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-800 text-sm"
-                              onClick={() => handleOpenMappingModal(lo, r)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="text-red-600 hover:text-red-800 text-sm"
-                              onClick={() => handleDeleteClick(r.id)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )
-                      }
-                    ]}
-                    data={contributions}
-                    pagination={false}
-                  />
-                )}
+                <p className="lopo-item-description">
+                  {lo.description}
+                </p>
               </div>
-            )
-          })}
+            ))}
+          </div>
         </div>
-      )}
 
+        {/* Middle Column - Mapping Controls */}
+        <div className="lopo-mapping-station">
+          <div className="mapping-card">
+            <h3 className="mapping-title">Mapping Station</h3>
+
+            <div className="mapping-content">
+              <div className="mapping-selection">
+                <label>Selected LO</label>
+                <div className={`selection-box ${selectedLoId ? 'filled' : ''}`}>
+                  {selectedLoId
+                    ? <span className="selection-text">{getLoById(selectedLoId)?.full_code || getLoById(selectedLoId)?.code}</span>
+                    : <span className="selection-placeholder">Select an LO from the left</span>}
+                </div>
+              </div>
+
+              <div className="mapping-arrow">
+                →
+              </div>
+
+              <div className="mapping-selection">
+                <label>Selected PO</label>
+                <div className={`selection-box ${selectedPoId ? 'filled' : ''}`}>
+                  {selectedPoId
+                    ? <span className="selection-text">{getPoById(selectedPoId)?.full_code || getPoById(selectedPoId)?.code}</span>
+                    : <span className="selection-placeholder">Select a PO from the right</span>}
+                </div>
+              </div>
+
+              <div className="mapping-weight-section">
+                <label>Contribution Weight (1-5)</label>
+                <input
+                  type="number"
+                  value={weight}
+                  onChange={e => setWeight(e.target.value)}
+                  disabled={!selectedLoId || !selectedPoId}
+                  className="weight-input"
+                  placeholder="-"
+                  min="1" max="5" step="0.1"
+                />
+              </div>
+
+              <button
+                className={`btn btn-block ${existingMappingId ? 'btn-success' : 'btn-primary'}`}
+                onClick={handleSaveMapping}
+                disabled={!selectedLoId || !selectedPoId || submitting}
+              >
+                {submitting ? 'Saving...' : existingMappingId ? 'Update Mapping' : 'Save New Mapping'}
+              </button>
+
+              {existingMappingId && (
+                <div className="mapping-exists-badge">
+                  ✓ Mapping Exists
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - POs */}
+        <div className="lopo-column">
+          <div className="lopo-column-header">
+            Program Outcomes
+          </div>
+          <div className="lopo-list">
+            {programOutcomes.map(po => (
+              <div
+                key={po.id}
+                onClick={() => setSelectedPoId(po.id)}
+                className={`lopo-item ${selectedPoId === po.id ? 'active' : ''}`}
+              >
+                <div className="lopo-item-header">
+                  <span className={`lopo-badge ${selectedPoId === po.id ? 'active' : ''}`}>
+                    {po.full_code || po.code}
+                  </span>
+                </div>
+                <p className="lopo-item-description">
+                  {po.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="lopo-summary">
+        <h3>Current Mappings</h3>
+        {programOutcomes.map(po => {
+          const mappedLos = contributions.filter(c => {
+            // Safe comparison
+            const cPoId = typeof c.program_outcome === 'object' ? c.program_outcome.id : c.program_outcome
+            return String(cPoId) === String(po.id)
+          })
+
+          if (mappedLos.length === 0) return null
+
+          return (
+            <div key={po.id} className="summary-po-item">
+              <div className="summary-po-header">
+                {po.full_code || po.code}: {po.description}
+              </div>
+              <div className="summary-lo-list">
+                {mappedLos.map(c => {
+                  const lo = typeof c.learning_outcome === 'object' ? c.learning_outcome : getLoById(c.learning_outcome)
+                  if (!lo) return null
+                  return (
+                    <div key={c.id} className="summary-lo-pill">
+                      {lo.full_code || lo.code}
+                      <span className="summary-lo-weight">({c.weight})</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+        {contributions.length === 0 && <p className="text-secondary italic">No mappings yet.</p>}
+      </div>
+
+      {/* Create LO Modal */}
       {isLoModalOpen && (
         <div className="modal-overlay" onClick={() => setIsLoModalOpen(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3 className="modal-title">
-              {currentLo ? 'Edit Learning Outcome' : 'New Learning Outcome'}
-            </h3>
-            <form onSubmit={handleSaveLo}>
+            <h3 className="modal-title">Create New Learning Outcome</h3>
+            <form onSubmit={handleCreateLo}>
               <div className="form-group">
                 <label className="form-label">Code</label>
                 <input
@@ -373,93 +366,22 @@ const InstructorCourseLoPo = () => {
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => setIsLoModalOpen(false)}
-                  disabled={submitting}
+                  disabled={creatingLo}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={submitting}
+                  disabled={creatingLo}
                 >
-                  {submitting ? 'Saving...' : 'Save Learning Outcome'}
+                  {creatingLo ? 'Creating...' : 'Create LO'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {isMappingModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsMappingModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3 className="modal-title">
-              {editingMappingId ? 'Edit Mapping' : 'Map to Program Outcome'}
-            </h3>
-            <form onSubmit={handleSaveMapping}>
-              <div className="form-group">
-                <label className="form-label">Program Outcome</label>
-                <select
-                  className="form-input"
-                  value={mappingForm.program_outcome}
-                  onChange={e => setMappingForm({ ...mappingForm, program_outcome: e.target.value })}
-                  disabled={!!editingMappingId}
-                >
-                  <option value="">Select a Program Outcome</option>
-                  {programOutcomes.map(po => (
-                    <option key={po.id} value={po.id}>
-                      {po.full_code || po.code} - {po.description}
-                    </option>
-                  ))}
-                </select>
-                {editingMappingId && <p className="text-xs text-gray-500 mt-1">PO cannot be changed while editing.</p>}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Weight (1-5)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={mappingForm.weight}
-                  onChange={e => setMappingForm({ ...mappingForm, weight: e.target.value })}
-                  placeholder="1-5"
-                  min="1"
-                  max="5"
-                  step="0.1"
-                />
-              </div>
-
-              <div className="modal-actions mt-6">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setIsMappingModalOpen(false)}
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Saving...' : 'Save Mapping'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <ConfirmationModal
-        isOpen={deleteConfirmation.isOpen}
-        title="Delete Mapping"
-        message="Are you sure you want to delete this mapping? This action cannot be undone."
-        onConfirm={handleConfirmDelete}
-        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
-        confirmVariant="danger"
-        confirmText="Delete"
-      />
     </div>
   )
 }

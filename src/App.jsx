@@ -18,6 +18,7 @@ import InstructorCourses from './pages/instructor/InstructorCourses'
 import CourseAssessments from './pages/instructor/CourseAssessments'
 import InstructorCourseLoPo from './pages/instructor/InstructorCourseLoPo'
 import InstructorCourseStudents from './pages/instructor/InstructorCourseStudents'
+import InstructorCourseEnroll from './pages/instructor/InstructorCourseEnroll'
 import InstructorGrades from './pages/instructor/InstructorGrades'
 
 // DeptHead pages
@@ -175,18 +176,6 @@ const AppRoutes = () => {
           <RequireAuth>
             <RequireRole roles="INSTRUCTOR">
               <AppLayout>
-                <InstructorHome />
-              </AppLayout>
-            </RequireRole>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/app/instructor/courses"
-        element={
-          <RequireAuth>
-            <RequireRole roles="INSTRUCTOR">
-              <AppLayout>
                 <InstructorCourses />
               </AppLayout>
             </RequireRole>
@@ -218,6 +207,18 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/app/instructor/courses/:courseId/enroll"
+        element={
+          <RequireAuth>
+            <RequireRole roles="INSTRUCTOR">
+              <AppLayout>
+                <InstructorCourseEnroll />
+              </AppLayout>
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/app/instructor/courses/:courseId/assessments"
         element={
           <RequireAuth>
@@ -230,7 +231,7 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/app/instructor/grades"
+        path="/app/instructor/courses/:courseId/grades"
         element={
           <RequireAuth>
             <RequireRole roles="INSTRUCTOR">

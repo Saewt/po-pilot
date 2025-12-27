@@ -39,6 +39,16 @@ export const coursesAPI = {
     return response.data
   },
 
+  unenroll_student: async (id, data) => {
+    const response = await http.post(`/course-instances/${id}/unenroll_student/`, data)
+    return response.data
+  },
+
+  getAvailableStudents: async (id, params = {}) => {
+    const response = await http.get(`/course-instances/${id}/available_students/`, { params })
+    return response.data
+  },
+
   templates: {
     list: async (params = {}) => {
       const response = await http.get('/course-templates/', { params })

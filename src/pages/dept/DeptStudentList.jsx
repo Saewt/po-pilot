@@ -57,13 +57,57 @@ const DeptStudentList = () => {
     const loadStudents = async () => {
         try {
             setLoading(true)
-            const response = await usersAPI.list({
+            let allStudents = []
+            let nextUrl = null
+            let params = {
                 role: 'STUDENT',
                 department: user.department
-            })
-            // Handle pagination or direct array
-            const data = response.results || response
-            setStudents(Array.isArray(data) ? data : [])
+            }
+
+            // Initial fetch
+            const response = await usersAPI.list(params)
+
+            // Handle pagination
+            if (response.results && Array.isArray(response.results)) {
+                allStudents = [...response.results]
+                nextUrl = response.next
+            } else if (Array.isArray(response)) {
+                allStudents = response
+            }
+
+            // Recursive fetching for remaining pages
+            while (nextUrl) {
+                // Extract page number or cursor from nextUrl if possible, 
+                // or just call using the full URL if our API client supported it.
+                // Since usersAPI.list takes params, we need to parse the URL or 
+                // extend usersAPI to accept a raw URL. 
+                // However, standard DRF `next` gives a full URL. 
+                // Let's assumet `http.get` can handle it, or we manually parse the page param.
+
+                // Simple parsing for 'page' param from nextUrl
+                const urlObj = new URL(nextUrl)
+                const page = urlObj.searchParams.get('page')
+
+                if (page) {
+                    const nextResponse = await usersAPI.list({ ...params, page })
+                    if (nextResponse.results) {
+                        allStudents = [...allStudents, ...nextResponse.results]
+                        nextUrl = nextResponse.next
+                    } else {
+                        nextUrl = null
+                    }
+                } else {
+                    nextUrl = null
+                }
+            }
+
+            // Add full_name for easier sorting
+            const processedStudents = allStudents.map(s => ({
+                ...s,
+                full_name: `${s.first_name || ''} ${s.last_name || ''}`.trim()
+            }))
+
+            setStudents(processedStudents)
             setSelectedIds(new Set()) // Clear selection on reload
         } catch (err) {
             console.error('Failed to load students:', err)
@@ -216,20 +260,31 @@ const DeptStudentList = () => {
                     checked={selectedIds.has(row.id)}
                     onChange={() => handleSelectOne(row.id)}
                 />
-            )
+            ),
+            sortable: false
         },
         {
             header: 'Student ID',
             accessor: 'student_id',
-            render: (row) => row.student_id || 'N/A'
+            render: (row) => row.student_id || 'N/A',
+            sortable: true
         },
         {
             header: 'Name',
-            accessor: 'first_name',
-            render: (row) => `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+            accessor: 'full_name',
+            render: (row) => row.full_name,
+            sortable: true
         },
-        { header: 'Email', accessor: 'email' },
-        { header: 'Enrollment Year', accessor: 'enrollment_year' },
+        {
+            header: 'Email',
+            accessor: 'email',
+            sortable: true
+        },
+        {
+            header: 'Enrollment Year',
+            accessor: 'enrollment_year',
+            sortable: true
+        },
     ]
 
     if (loading && students.length === 0 && !showRegister && !showBulkImport) return <LoadingState />
@@ -286,6 +341,7 @@ const DeptStudentList = () => {
                 columns={columns}
                 data={filteredStudents}
                 emptyMessage="No students found matching your filters."
+                compact={true}
             />
 
             {/* Single Registration Modal - No Password Field */}

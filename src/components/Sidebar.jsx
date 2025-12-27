@@ -21,9 +21,7 @@ const Sidebar = () => {
       ]
     } else if (role === 'INSTRUCTOR') {
       return [
-        { path: '/app/instructor', label: 'Home' },
-        { path: '/app/instructor/courses', label: 'Courses' },
-        { path: '/app/instructor/grades', label: 'Grades' },
+        { path: '/app/instructor', label: 'Courses' },
       ]
     } else if (role === 'DEPARTMENT_HEAD') {
       return [
