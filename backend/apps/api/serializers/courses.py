@@ -286,11 +286,12 @@ class LOtoPOContributionWriteSerializer(serializers.ModelSerializer):
 
 
 class LOtoPOContributionListSerializer(serializers.ModelSerializer):
+    learning_outcome = LearningOutcomeListSerializer(read_only=True)
     program_outcome = ProgramOutcomeListSerializer(read_only=True)
 
     class Meta:
         model = LOtoPOContribution
-        fields = ["id", "program_outcome", "weight", "approval_status", "approved_at", "decline_reason"]
+        fields = ["id", "learning_outcome", "program_outcome", "weight", "approval_status", "approved_at", "decline_reason"]
 
 
 class LOtoPOContributionDetailSerializer(serializers.ModelSerializer):

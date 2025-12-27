@@ -49,12 +49,12 @@ class LearningOutcomeViewSet(ModelViewSet):
     def get_permissions(self):
         """
         Read: All authenticated users.
-        Write: Department Heads and Admins only.
+        Write: Instructors (for courses they teach), Department Heads, and Admins.
         """
         if self.action in ['list', 'retrieve']:
             permission_classes = [IsAuthenticated]
         else:
-            permission_classes = [IsDepartmentHead | IsAdminUser]
+            permission_classes = [IsInstructor | IsDepartmentHead | IsAdminUser]
         return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):

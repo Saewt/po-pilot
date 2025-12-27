@@ -52,18 +52,19 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 class IsCourseInstructor(permissions.BasePermission):
     """
     Object-level permission to allow access only to the instructor of a course instance.
+    Handles both CourseInstance objects and related objects (e.g., Assessment).
     """
     def has_object_permission(self, request, view, obj):
-        # Read permissions are allowed to any request,
-        # so we'll always allow GET, HEAD or OPTIONS requests.
-        # (Wait, per plan: "Update/Manage: Instructor (only for their own courses)")
-        # If strict instructor check is needed for modification:
-        
         if not (request.user and request.user.is_authenticated):
             return False
             
-        # If it's a specific course instance
+        # If it's a CourseInstance object directly
         if hasattr(obj, 'instructor'):
             return obj.instructor == request.user
+        
+        # If it's an Assessment or similar object with course_instance FK
+        if hasattr(obj, 'course_instance') and hasattr(obj.course_instance, 'instructor'):
+            return obj.course_instance.instructor == request.user
             
         return False
+
