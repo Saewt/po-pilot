@@ -1154,6 +1154,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedFinalGradeList'
           description: ''
+  /api/course-instances/{id}/finalize/:
+    post:
+      operationId: course_instances_finalize_create
+      description: 'Finalize a course: validate weights sum to 100%, all grades entered,
+        then lock the course.'
+      summary: Finalize course
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceList'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceList'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceList'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizeCourseResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalizeCourseValidation'
+          description: ''
   /api/course-instances/{id}/grade_distribution/:
     get:
       operationId: course_instances_grade_distribution_retrieve
@@ -1261,6 +1303,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedCourseStudentList'
           description: ''
+  /api/course-instances/{id}/summary/{student_id}/:
+    get:
+      operationId: course_instances_summary_retrieve
+      description: Get comprehensive end-of-course summary for a specific student.
+      summary: Get course summary for student
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      - in: path
+        name: student_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - course-instances
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseSummary'
+          description: ''
   /api/course-instances/{id}/unenroll_student/:
     post:
       operationId: course_instances_unenroll_student_create
@@ -1286,6 +1356,45 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/StudentUnenroll'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: ''
+  /api/course-instances/{id}/unfinalize/:
+    post:
+      operationId: course_instances_unfinalize_create
+      description: Revert a finalized course back to active status. Department Heads
+        and Admins only.
+      summary: Unfinalize course
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this course instance.
+        required: true
+      tags:
+      - course-instances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceList'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceList'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CourseInstanceList'
         required: true
       security:
       - jwtAuth: []
@@ -3408,6 +3517,24 @@ paths:
                   message:
                     type: string
           description: ''
+  /api/users/my/dashboard/:
+    get:
+      operationId: users_my_dashboard_retrieve
+      description: Get comprehensive student dashboard with GPA, courses, assessments,
+        and PO achievement summary in a single call. Students can only access their
+        own dashboard.
+      summary: Get student dashboard
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentDashboard'
+          description: ''
 components:
   schemas:
     ActionEnum:
@@ -3458,6 +3585,10 @@ components:
           title: Contribution weight to final grade (%)
           description: 'Weight of this assessment towards the final course grade ex:
             20 for 20%'
+        description:
+          type: string
+          nullable: true
+          description: Optional description of the assessment
         lo_contributions:
           type: string
           readOnly: true
@@ -3574,6 +3705,42 @@ components:
       - student_name
       - updated_at
       - weighted_score
+    AssessmentGradeSummary:
+      type: object
+      description: Individual assessment with student's grade for course summary.
+      properties:
+        assessment_id:
+          type: integer
+        assessment_name:
+          type: string
+        assessment_type:
+          type: string
+        score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          nullable: true
+        max_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        weighted_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+      required:
+      - assessment_id
+      - assessment_name
+      - assessment_type
+      - max_score
+      - score
+      - weight
+      - weighted_score
     AssessmentList:
       type: object
       description: Response summary for assessments.
@@ -3598,6 +3765,10 @@ components:
           title: Contribution weight to final grade (%)
           description: 'Weight of this assessment towards the final course grade ex:
             20 for 20%'
+        description:
+          type: string
+          nullable: true
+          description: Optional description of the assessment
       required:
       - assessment_type
       - id
@@ -3609,6 +3780,10 @@ components:
         id:
           type: integer
           readOnly: true
+        assessment:
+          allOf:
+          - $ref: '#/components/schemas/AssessmentList'
+          readOnly: true
         learning_outcome:
           allOf:
           - $ref: '#/components/schemas/LearningOutcomeList'
@@ -3618,12 +3793,16 @@ components:
           format: decimal
           pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
       required:
+      - assessment
       - id
       - learning_outcome
       - weight
     AssessmentToLOContributionWrite:
       type: object
       properties:
+        id:
+          type: integer
+          readOnly: true
         assessment_id:
           type: integer
           writeOnly: true
@@ -3635,8 +3814,7 @@ components:
           format: decimal
           pattern: ^-?\d{0,1}(?:\.\d{0,1})?$
       required:
-      - assessment_id
-      - learning_outcome_id
+      - id
       - weight
     AssessmentTypeEnum:
       enum:
@@ -3681,6 +3859,10 @@ components:
           title: Contribution weight to final grade (%)
           description: 'Weight of this assessment towards the final course grade ex:
             20 for 20%'
+        description:
+          type: string
+          nullable: true
+          description: Optional description of the assessment
       required:
       - assessment_type
       - course_instance_id
@@ -3937,12 +4119,25 @@ components:
           readOnly: true
         is_active:
           type: boolean
+        is_finalized:
+          type: string
+          readOnly: true
+        finalized_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the course was finalized and grades locked
+        finalized_by_name:
+          type: string
+          readOnly: true
       required:
       - assessments_summary
       - course_template
+      - finalized_by_name
       - full_code
       - id
       - instructor
+      - is_finalized
       - semester
       - students
       - students_count
@@ -3980,11 +4175,20 @@ components:
           readOnly: true
         is_active:
           type: boolean
+        is_finalized:
+          type: string
+          readOnly: true
+        finalized_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the course was finalized and grades locked
       required:
       - course_name
       - full_code
       - id
       - instructor
+      - is_finalized
       - semester
       - target_class_year
       - year
@@ -4071,6 +4275,69 @@ components:
       - id
       - last_name
       - student_id
+    CourseSummary:
+      type: object
+      description: Comprehensive course summary for a student.
+      properties:
+        course_instance_id:
+          type: integer
+        course_name:
+          type: string
+        course_code:
+          type: string
+        semester:
+          type: string
+        year:
+          type: integer
+        credit:
+          type: integer
+        instructor_name:
+          type: string
+          nullable: true
+        is_finalized:
+          type: boolean
+        finalized_at:
+          type: string
+          format: date-time
+          nullable: true
+        final_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        normalized_score:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        letter_grade:
+          type: string
+        assessments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentGradeSummary'
+        lo_achievements:
+          type: array
+          items:
+            $ref: '#/components/schemas/LOAchievementSummary'
+        po_achievements:
+          type: array
+          items:
+            $ref: '#/components/schemas/POAchievementSummary'
+      required:
+      - assessments
+      - course_code
+      - course_instance_id
+      - course_name
+      - credit
+      - final_score
+      - finalized_at
+      - instructor_name
+      - is_finalized
+      - letter_grade
+      - lo_achievements
+      - normalized_score
+      - po_achievements
+      - semester
+      - year
     CourseTemplateDetail:
       type: object
       description: Response detail for course template.
@@ -4404,6 +4671,65 @@ components:
       - student_number
       - total_possible_weight
       - total_score
+    FinalizeCourseResponse:
+      type: object
+      description: Response after successful course finalization.
+      properties:
+        message:
+          type: string
+        finalized_at:
+          type: string
+          format: date-time
+        finalized_by:
+          type: string
+        total_students:
+          type: integer
+        grade_distribution:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Distribution of letter grades
+      required:
+      - finalized_at
+      - finalized_by
+      - grade_distribution
+      - message
+      - total_students
+    FinalizeCourseValidation:
+      type: object
+      description: Validation response when finalization fails.
+      properties:
+        can_finalize:
+          type: boolean
+          description: Whether the course can be finalized
+        current_weight_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          description: Current total of assessment weights
+        missing_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+          description: Weight needed to reach 100% (if not complete)
+        students_missing_grades:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: List of students with missing grade info
+        total_students:
+          type: integer
+        students_fully_graded:
+          type: integer
+      required:
+      - can_finalize
+      - current_weight_total
+      - missing_weight
+      - students_fully_graded
+      - students_missing_grades
+      - total_students
     GPA:
       type: object
       description: Serializer for GPA information.
@@ -4443,6 +4769,26 @@ components:
       - average_score
       - distribution
       - total_students
+    LOAchievementSummary:
+      type: object
+      description: LO achievement for course summary.
+      properties:
+        lo_id:
+          type: integer
+        lo_code:
+          type: string
+        lo_description:
+          type: string
+        achievement:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+      required:
+      - achievement
+      - lo_code
+      - lo_description
+      - lo_id
     LOtoPOApprovalAction:
       type: object
       description: Serializer for LO-PO approval actions (approve/decline).
@@ -4529,6 +4875,10 @@ components:
         id:
           type: integer
           readOnly: true
+        learning_outcome:
+          allOf:
+          - $ref: '#/components/schemas/LearningOutcomeList'
+          readOnly: true
         program_outcome:
           allOf:
           - $ref: '#/components/schemas/ProgramOutcomeList'
@@ -4556,6 +4906,7 @@ components:
           description: Reason for declining this contribution
       required:
       - id
+      - learning_outcome
       - program_outcome
       - weight
     LOtoPOContributionWrite:
@@ -4740,6 +5091,29 @@ components:
       required:
       - achievement_score
       - contribution_count
+      - po_code
+      - po_description
+      - po_full_code
+      - po_id
+    POAchievementSummary:
+      type: object
+      description: PO achievement for course summary.
+      properties:
+        po_id:
+          type: integer
+        po_code:
+          type: string
+        po_full_code:
+          type: string
+        po_description:
+          type: string
+        achievement:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+      required:
+      - achievement
       - po_code
       - po_description
       - po_full_code
@@ -5176,6 +5550,9 @@ components:
     PatchedAssessmentToLOContributionWrite:
       type: object
       properties:
+        id:
+          type: integer
+          readOnly: true
         assessment_id:
           type: integer
           writeOnly: true
@@ -5213,6 +5590,10 @@ components:
           title: Contribution weight to final grade (%)
           description: 'Weight of this assessment towards the final course grade ex:
             20 for 20%'
+        description:
+          type: string
+          nullable: true
+          description: Optional description of the assessment
     PatchedCourseAnnouncement:
       type: object
       properties:
@@ -5618,6 +5999,101 @@ components:
         * `DEPARTMENT_HEAD` - Department Head
         * `INSTRUCTOR` - Instructor
         * `STUDENT` - Student
+    StudentDashboard:
+      type: object
+      description: |-
+        Comprehensive student dashboard serializer.
+        Aggregates all student statistics in a single response.
+      properties:
+        student_id:
+          type: integer
+        student_number:
+          type: string
+        student_name:
+          type: string
+        student_email:
+          type: string
+          format: email
+        department_name:
+          type: string
+        department_code:
+          type: string
+        class_year:
+          type: integer
+          nullable: true
+        enrollment_year:
+          type: integer
+          nullable: true
+        official_gpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          description: Official GPA from completed courses only
+        current_gpa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          description: Current GPA including active course grades
+        earned_credits:
+          type: integer
+          description: Credits earned from completed courses
+        active_credits:
+          type: integer
+          description: Credits currently in-progress
+        total_courses:
+          type: integer
+        active_courses:
+          type: integer
+        completed_courses:
+          type: integer
+        total_assessments:
+          type: integer
+        graded_assessments:
+          type: integer
+        pending_assessments:
+          type: integer
+        average_po_achievement:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
+        po_count:
+          type: integer
+        active_course_list:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: List of active courses with basic info
+        recent_grades:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: Last 5 graded assessments
+      required:
+      - active_course_list
+      - active_courses
+      - active_credits
+      - average_po_achievement
+      - class_year
+      - completed_courses
+      - current_gpa
+      - department_code
+      - department_name
+      - earned_credits
+      - enrollment_year
+      - graded_assessments
+      - official_gpa
+      - pending_assessments
+      - po_count
+      - recent_grades
+      - student_email
+      - student_id
+      - student_name
+      - student_number
+      - total_assessments
+      - total_courses
     StudentEnrollment:
       type: object
       description: Serializer for bulk student enrollment operations.
