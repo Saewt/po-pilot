@@ -56,4 +56,31 @@ export const usersAPI = {
         const response = await http.post('/users/bulk_delete_students/', { student_ids: studentIds })
         return response.data
     },
+
+    /**
+     * Get student dashboard data (single API call for all dashboard info)
+     * Students only - returns own data
+     */
+    getMyDashboard: async () => {
+        const response = await http.get('/users/my/dashboard/')
+        return response.data
+    },
+
+    /**
+     * Get detailed PO achievements for a student
+     * @param {string|number} studentId - Database ID or student number
+     */
+    getStudentPOAchievements: async (studentId) => {
+        const response = await http.get(`/achievements/student/${studentId}/`)
+        return response.data
+    },
+
+    /**
+     * Get GPA information for a user
+     * @param {number} userId - User ID
+     */
+    getGPA: async (userId) => {
+        const response = await http.get(`/users/${userId}/gpa/`)
+        return response.data
+    },
 }

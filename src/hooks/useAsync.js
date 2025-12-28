@@ -23,16 +23,24 @@ export const useAsync = (asyncFunction, dependencies = [], immediate = true) => 
       return { success: true, data: result }
     } catch (err) {
       console.error('Async operation failed:', err)
-      const errorMessage = err.response?.data?.detail || 
-                          err.response?.data?.message ||
-                          err.message ||
-                          'An error occurred. Please try again.'
+      const errorMessage = err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        'An error occurred. Please try again.'
       setError(errorMessage)
       return { success: false, error: errorMessage }
     } finally {
       setLoading(false)
     }
   }, dependencies)
+
+  // Execute on mount and when dependencies change if immediate is true
+  useEffect(() => {
+    if (immediate) {
+      execute()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [immediate, ...dependencies])
 
   const reset = useCallback(() => {
     setData(null)
@@ -68,26 +76,26 @@ export const useMultipleAsync = (asyncFunctions, dependencies = [], immediate = 
     try {
       setLoading(true)
       setError(null)
-      
+
       // Execute all async functions in parallel
       const keys = Object.keys(asyncFunctions)
       const promises = keys.map(key => asyncFunctions[key]())
       const results = await Promise.all(promises)
-      
+
       // Combine results into object with original keys
       const combinedData = {}
       keys.forEach((key, index) => {
         combinedData[key] = results[index]
       })
-      
+
       setData(combinedData)
       return { success: true, data: combinedData }
     } catch (err) {
       console.error('Multiple async operations failed:', err)
-      const errorMessage = err.response?.data?.detail || 
-                          err.response?.data?.message ||
-                          err.message ||
-                          'Failed to load data. Please try again.'
+      const errorMessage = err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to load data. Please try again.'
       setError(errorMessage)
       return { success: false, error: errorMessage }
     } finally {

@@ -168,12 +168,48 @@ const InstructorCourseLoPo = () => {
     }
   }
 
+  const handleDeleteMapping = async (mappingId) => {
+    if (!window.confirm('Are you sure you want to delete this mapping?')) return
+
+    try {
+      await loPoContributionsAPI.delete(mappingId)
+      addToast('Mapping deleted', 'success')
+
+      // Clear selection if this was the selected mapping
+      if (existingMappingId === mappingId) {
+        setExistingMappingId(null)
+        setWeight('')
+      }
+
+      // Refresh contributions
+      const courseTemplateId = typeof course.course_template === 'object' ? course.course_template.id : course.course_template
+      const contribRes = await loPoContributionsAPI.list({ course_template_id: courseTemplateId })
+      setContributions(contribRes.results || contribRes || [])
+    } catch (err) {
+      console.error(err)
+      addToast('Failed to delete mapping', 'error')
+    }
+  }
+
   if (loading) return <LoadingState />
   if (error) return <ErrorState error={error} onRetry={loadCourseData} />
   if (!course) return <div>Course not found</div>
 
   const getLoById = (id) => learningOutcomes.find(lo => String(lo.id) === String(id))
   const getPoById = (id) => programOutcomes.find(po => String(po.id) === String(id))
+
+  // Get PO IDs that are already mapped to the currently selected LO
+  const mappedPoIdsForSelectedLo = selectedLoId
+    ? contributions
+      .filter(c => {
+        const cLoId = typeof c.learning_outcome === 'object' ? c.learning_outcome.id : c.learning_outcome
+        return String(cLoId) === String(selectedLoId)
+      })
+      .map(c => {
+        const cPoId = typeof c.program_outcome === 'object' ? c.program_outcome.id : c.program_outcome
+        return String(cPoId)
+      })
+    : []
 
   return (
     <div className="page-container" style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }}>
@@ -243,16 +279,51 @@ const InstructorCourseLoPo = () => {
               </div>
 
               <div className="mapping-weight-section">
-                <label>Contribution Weight (1-5)</label>
-                <input
-                  type="number"
-                  value={weight}
-                  onChange={e => setWeight(e.target.value)}
-                  disabled={!selectedLoId || !selectedPoId}
-                  className="weight-input"
-                  placeholder="-"
-                  min="1" max="5" step="0.1"
-                />
+                <label>Contribution Weight</label>
+                <div style={{
+                  display: 'flex',
+                  gap: '0.25rem',
+                  backgroundColor: '#f3f4f6',
+                  padding: '0.25rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  {[1, 2, 3, 4, 5].map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setWeight(val.toString())}
+                      disabled={!selectedLoId || !selectedPoId}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875rem',
+                        fontWeight: parseInt(weight) === val ? 700 : 500,
+                        border: 'none',
+                        cursor: (!selectedLoId || !selectedPoId) ? 'not-allowed' : 'pointer',
+                        backgroundColor: parseInt(weight) === val ? 'white' : 'transparent',
+                        color: parseInt(weight) === val ? '#2563eb' : '#6b7280',
+                        boxShadow: parseInt(weight) === val ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                        opacity: (!selectedLoId || !selectedPoId) ? 0.5 : 1,
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '0.65rem',
+                  color: '#9ca3af',
+                  marginTop: '0.25rem',
+                  padding: '0 0.25rem'
+                }}>
+                  <span>Minimal</span>
+                  <span>Significant</span>
+                </div>
               </div>
 
               <button
@@ -275,25 +346,54 @@ const InstructorCourseLoPo = () => {
         {/* Right Column - POs */}
         <div className="lopo-column">
           <div className="lopo-column-header">
-            Program Outcomes
+            Program Outcomes {selectedLoId && mappedPoIdsForSelectedLo.length > 0 && (
+              <span style={{ fontSize: '0.7rem', fontWeight: 'normal', color: '#888', marginLeft: '0.5rem' }}>
+                ({mappedPoIdsForSelectedLo.length} already mapped)
+              </span>
+            )}
           </div>
           <div className="lopo-list">
-            {programOutcomes.map(po => (
-              <div
-                key={po.id}
-                onClick={() => setSelectedPoId(po.id)}
-                className={`lopo-item ${selectedPoId === po.id ? 'active' : ''}`}
-              >
-                <div className="lopo-item-header">
-                  <span className={`lopo-badge ${selectedPoId === po.id ? 'active' : ''}`}>
-                    {po.full_code || po.code}
-                  </span>
+            {programOutcomes.map(po => {
+              const isAlreadyMapped = mappedPoIdsForSelectedLo.includes(String(po.id))
+              const isSelected = selectedPoId === po.id
+
+              return (
+                <div
+                  key={po.id}
+                  onClick={() => !isAlreadyMapped && setSelectedPoId(po.id)}
+                  className={`lopo-item ${isSelected ? 'active' : ''} ${isAlreadyMapped ? 'disabled' : ''}`}
+                  style={{
+                    opacity: isAlreadyMapped ? 0.5 : 1,
+                    cursor: isAlreadyMapped ? 'not-allowed' : 'pointer',
+                    backgroundColor: isAlreadyMapped ? '#f5f5f5' : undefined,
+                    position: 'relative'
+                  }}
+                  title={isAlreadyMapped ? 'Already mapped to selected LO' : undefined}
+                >
+                  <div className="lopo-item-header">
+                    <span className={`lopo-badge ${isSelected ? 'active' : ''}`}>
+                      {po.full_code || po.code}
+                    </span>
+                    {isAlreadyMapped && (
+                      <span style={{
+                        marginLeft: '0.5rem',
+                        fontSize: '0.65rem',
+                        padding: '1px 6px',
+                        backgroundColor: '#e8f5e9',
+                        color: '#2e7d32',
+                        borderRadius: '3px',
+                        fontWeight: '600'
+                      }}>
+                        ✓ Mapped
+                      </span>
+                    )}
+                  </div>
+                  <p className="lopo-item-description">
+                    {po.description}
+                  </p>
                 </div>
-                <p className="lopo-item-description">
-                  {po.description}
-                </p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
@@ -314,14 +414,77 @@ const InstructorCourseLoPo = () => {
               <div className="summary-po-header">
                 {po.full_code || po.code}: {po.description}
               </div>
-              <div className="summary-lo-list">
+              <div className="summary-lo-list" style={{ display: 'flex', flexDirection: 'column', gap: '0', marginLeft: '0', marginTop: '0.5rem' }}>
                 {mappedLos.map(c => {
                   const lo = typeof c.learning_outcome === 'object' ? c.learning_outcome : getLoById(c.learning_outcome)
                   if (!lo) return null
                   return (
-                    <div key={c.id} className="summary-lo-pill">
-                      {lo.full_code || lo.code}
-                      <span className="summary-lo-weight">({c.weight})</span>
+                    <div key={c.id} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      padding: '0.75rem',
+                      backgroundColor: '#f8f9fa',
+                      borderBottom: '1px solid #eee',
+                      gap: '1rem'
+                    }}>
+                      <div style={{ flex: '0 0 auto', width: '80px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          backgroundColor: '#e3f2fd',
+                          color: '#1565c0',
+                          borderRadius: '4px',
+                          fontWeight: '700',
+                          fontSize: '0.85rem'
+                        }}>
+                          {lo.full_code || lo.code}
+                        </span>
+                      </div>
+                      <div style={{ flex: 1, fontSize: '0.9rem', color: '#424242', lineHeight: '1.4' }}>
+                        {lo.description}
+                      </div>
+                      <div style={{
+                        flex: '0 0 auto',
+                        fontWeight: '600',
+                        color: '#0d47a1',
+                        fontSize: '0.9rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <span>Weight:</span>
+                        <span style={{ fontSize: '1rem' }}>{c.weight}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteMapping(c.id)}
+                        style={{
+                          flex: '0 0 auto',
+                          padding: '4px 8px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #e57373',
+                          color: '#c62828',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.15s'
+                        }}
+                        onMouseEnter={e => {
+                          e.target.style.backgroundColor = '#ffebee'
+                        }}
+                        onMouseLeave={e => {
+                          e.target.style.backgroundColor = 'transparent'
+                        }}
+                        title="Delete this mapping"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                        </svg>
+                        Delete
+                      </button>
                     </div>
                   )
                 })}

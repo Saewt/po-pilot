@@ -9,6 +9,7 @@ import Register from './pages/Register'
 import ChangePassword from './pages/ChangePassword'
 
 // Student pages
+import StudentDashboard from './pages/dashboards/StudentDashboard'
 import StudentCourses from './pages/student/StudentCourses'
 import StudentCourseDetail from './pages/student/StudentCourseDetail'
 
@@ -150,7 +151,7 @@ const AppRoutes = () => {
           <RequireAuth>
             <RequireRole roles="STUDENT">
               <AppLayout>
-                <StudentCourses />
+                <StudentDashboard />
               </AppLayout>
             </RequireRole>
           </RequireAuth>
