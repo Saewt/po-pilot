@@ -5,11 +5,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db import transaction
 from django.db import transaction
 
 from apps.api.serializers.users import (
@@ -47,7 +44,6 @@ class UserViewSet(ModelViewSet):
     
     Department Heads can list and filter users in their department.
     Instructors can list and filter users in their department (for enrollment).
-    Instructors can list and filter users in their department (for enrollment).
     Supports filtering by role and department query parameters.
     """
     queryset = User.objects.all()
@@ -57,7 +53,6 @@ class UserViewSet(ModelViewSet):
     
     def get_permissions(self):
         """
-        - List/Retrieve: Department Head, Instructor, or Admin
         - List/Retrieve: Department Head, Instructor, or Admin
         - Create: Department Head or Admin
         - Update/Delete: Admin only
