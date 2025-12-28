@@ -65,10 +65,12 @@ const StudentDashboard = ({ user }) => {
 
   const activeCourses = data.active_course_list || []
   const recentGrades = data.recent_grades || []
+  console.log('Recent grades data:', recentGrades)
 
   // Assessment progress
   const totalAssessments = data.total_assessments || 0
   const gradedAssessments = data.graded_assessments || 0
+  const pendingAssessments = data.pending_assessments || 0
   const assessmentProgress = totalAssessments > 0 ? (gradedAssessments / totalAssessments) * 100 : 0
 
   // GPA values from API
@@ -121,7 +123,7 @@ const StudentDashboard = ({ user }) => {
         {/* PO Achievement Card */}
         <div className="info-card" style={{ textAlign: 'center', padding: '1.5rem', marginBottom: 0 }}>
           <h3 style={{ fontSize: '2.5rem', color: '#6366f1', margin: '0 0 0.5rem 0', fontWeight: 700 }}>
-            {data.average_po_achievement != null ? parseFloat(data.average_po_achievement).toFixed(1) : '—'}%
+            {data.average_po_achievement != null ? parseFloat(data.average_po_achievement).toFixed(1) : '— '}%
           </h3>
           <p style={{ margin: 0, color: '#64748b', fontWeight: 500 }}>PO Achievement</p>
           <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>across {data.po_count || 0} outcomes</span>
@@ -142,7 +144,7 @@ const StudentDashboard = ({ user }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', color: '#334155', fontWeight: 600 }}>Assessment Progress</h3>
           <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-            {gradedAssessments} / {totalAssessments} graded
+            {gradedAssessments} / {totalAssessments} graded • {pendingAssessments} pending
           </span>
         </div>
         <div style={{
@@ -252,7 +254,7 @@ const StudentDashboard = ({ user }) => {
                           {grade.assessment_name}
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>
-                          {grade.course_name}
+                          {grade.course_name || grade.course_code || grade.course_instance?.name || grade.course_instance?.code || 'Course'}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
@@ -269,6 +271,87 @@ const StudentDashboard = ({ user }) => {
               </div>
             )}
           </div>
+
+          {/* Completed/Finalized Courses */}
+          {(data.completed_courses > 0 || data.completed_course_list?.length > 0) && (
+            <div className="info-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 className="section-title" style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0110 0v4" />
+                  </svg>
+                  Completed Courses
+                </h2>
+                <span className="badge" style={{ background: '#dcfce7', color: '#16a34a' }}>{data.completed_courses || data.completed_course_list?.length || 0}</span>
+              </div>
+              <div>
+                {(!data.completed_course_list || data.completed_course_list.length === 0) ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>
+                    No completed courses yet.
+                  </div>
+                ) : (
+                  data.completed_course_list.map((course, idx, arr) => (
+                    <div key={course.id} style={{
+                      padding: '1.25rem 1.5rem',
+                      borderBottom: idx < arr.length - 1 ? '1px solid #f1f5f9' : 'none',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backgroundColor: '#fafffe'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {course.code || course.full_code}
+                          {course.letter_grade && (
+                            <span style={{
+                              padding: '0.125rem 0.5rem',
+                              backgroundColor: '#dcfce7',
+                              color: '#16a34a',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              display: 'flex',
+                              gap: '4px',
+                              alignItems: 'center'
+                            }}>
+                              {course.letter_grade}
+                              {course.final_score && (
+                                <span style={{ fontWeight: 400, opacity: 0.8 }}>
+                                  ({course.final_score})
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ color: '#64748b', marginTop: '2px', fontSize: '0.9rem' }}>
+                          {course.name || course.course_name}
+                        </div>
+                        <div style={{ color: '#94a3b8', marginTop: '4px', fontSize: '0.8rem' }}>
+                          {course.semester} {course.year} • {course.credit || 3} credits
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/app/student/${course.id}`)}
+                        style={{
+                          background: '#f0fdf4',
+                          color: '#16a34a',
+                          border: '1px solid #bbf7d0',
+                          padding: '0.5rem 1rem',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 500
+                        }}
+                      >
+                        View Summary
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
         </div>
 

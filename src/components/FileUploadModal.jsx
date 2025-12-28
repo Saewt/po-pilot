@@ -69,7 +69,7 @@ const FileUploadModal = ({
         reader.onload = (e) => {
             try {
                 const data = new Uint8Array(e.target.result)
-                const workbook = XLSX.read(data, { type: 'array' })
+                const workbook = XLSX.read(data, { type: 'array', codepage: 65001 })
 
                 // Get first sheet
                 const sheetName = workbook.SheetNames[0]

@@ -49,6 +49,21 @@ export const coursesAPI = {
     return response.data
   },
 
+  finalize: async (id) => {
+    const response = await http.post(`/course-instances/${id}/finalize/`)
+    return response.data
+  },
+
+  unfinalize: async (id) => {
+    const response = await http.post(`/course-instances/${id}/unfinalize/`)
+    return response.data
+  },
+
+  getSummary: async (id, studentId) => {
+    const response = await http.get(`/course-instances/${id}/summary/${studentId}/`)
+    return response.data
+  },
+
   templates: {
     list: async (params = {}) => {
       const response = await http.get('/course-templates/', { params })

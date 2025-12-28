@@ -287,7 +287,6 @@ const InstructorCourseEnroll = () => {
             <div className="card" style={{ marginTop: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                     <h2 className="section-title" style={{ margin: 0 }}>Batch Enroll from Department</h2>
-
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                         <select
                             className="form-select"

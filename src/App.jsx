@@ -21,6 +21,10 @@ import InstructorCourseLoPo from './pages/instructor/InstructorCourseLoPo'
 import InstructorCourseStudents from './pages/instructor/InstructorCourseStudents'
 import InstructorCourseEnroll from './pages/instructor/InstructorCourseEnroll'
 import InstructorGrades from './pages/instructor/InstructorGrades'
+import InstructorCourseSummary from './pages/instructor/InstructorCourseSummary'
+
+// Student Summary
+import StudentCourseSummary from './pages/student/StudentCourseSummary'
 
 // DeptHead pages
 import DeptApprovals from './pages/dept/DeptApprovals'
@@ -238,6 +242,32 @@ const AppRoutes = () => {
             <RequireRole roles="INSTRUCTOR">
               <AppLayout>
                 <InstructorGrades />
+              </AppLayout>
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/app/instructor/courses/:courseId/summary"
+        element={
+          <RequireAuth>
+            <RequireRole roles="INSTRUCTOR">
+              <AppLayout>
+                <InstructorCourseSummary />
+              </AppLayout>
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+
+      {/* Student course summary route */}
+      <Route
+        path="/app/student/courses/:courseId/summary"
+        element={
+          <RequireAuth>
+            <RequireRole roles="STUDENT">
+              <AppLayout>
+                <StudentCourseSummary />
               </AppLayout>
             </RequireRole>
           </RequireAuth>

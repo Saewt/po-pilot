@@ -9,6 +9,7 @@ import { assessmentsAPI } from '../../api/assessments'
 import LoadingState from '../../components/LoadingState'
 import ErrorState from '../../components/ErrorState'
 import DataTable from '../../components/DataTable'
+import CourseSummaryCard from '../../components/CourseSummaryCard'
 import '../../styles/pages.css'
 
 /**
@@ -62,9 +63,17 @@ const StudentHome = () => {
         return
       }
 
-      // Get all assessments to map grades to assessments
-      const assessmentsResponse = await assessmentsAPI.list()
-      const assessments = assessmentsResponse.results || []
+      // Get assessments for each course (filtered by course_instance)
+      const assessmentsPromises = studentCourses.map(course =>
+        assessmentsAPI.list({ course_instance: course.id })
+          .then(res => res.results || res || [])
+          .catch(err => {
+            console.warn(`Failed to fetch assessments for course ${course.id}`, err)
+            return []
+          })
+      )
+      const assessmentsResults = await Promise.all(assessmentsPromises)
+      const assessments = assessmentsResults.flat()
 
       // Get all learning outcomes for courses
       const allLOs = []
@@ -203,15 +212,33 @@ const StudentHome = () => {
         )}
       </div>
 
-      {/* Courses List */}
-      <div>
-        <h2 className="section-title">My Courses</h2>
+      {/* Active Courses */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 className="section-title">Active Courses</h2>
         <DataTable
           columns={courseColumns}
-          data={courses}
+          data={courses.filter(c => !c.is_finalized)}
           onRowClick={(row) => navigate(`/app/student/courses/${row.id}`)}
         />
       </div>
+
+      {/* Completed Courses */}
+      {courses.filter(c => c.is_finalized).length > 0 && (
+        <div>
+          <h2 className="section-title">Completed Courses</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1rem' }}>
+            {courses.filter(c => c.is_finalized).map(course => (
+              <CourseSummaryCard
+                key={course.id}
+                course={course}
+                grade={{ percentage: 75 }}
+                credits={course.course_template?.credit || 0}
+                studentId={user.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

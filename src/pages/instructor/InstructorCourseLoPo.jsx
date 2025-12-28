@@ -80,7 +80,7 @@ const InstructorCourseLoPo = () => {
       if (!courseTemplateId) throw new Error('Course Template ID not found.')
 
       const [loRes, contribRes, poRes] = await Promise.all([
-        learningOutcomesAPI.list({ course_template: courseTemplateId }),
+        learningOutcomesAPI.list({ course_template_id: courseTemplateId }),
         loPoContributionsAPI.list({ course_template_id: courseTemplateId }),
         programOutcomesAPI.list()
       ])
@@ -150,13 +150,13 @@ const InstructorCourseLoPo = () => {
     setCreatingLo(true)
     try {
       const courseTemplateId = typeof course.course_template === 'object' ? course.course_template.id : course.course_template
-      await learningOutcomesAPI.create({ ...loForm, course_template: courseTemplateId })
+      await learningOutcomesAPI.create({ ...loForm, course_template_id: courseTemplateId })
       addToast('Learning Outcome created', 'success')
       setIsLoModalOpen(false)
       setLoForm({ code: '', description: '' })
 
       // Refresh LOs
-      const loRes = await learningOutcomesAPI.list({ course_template: courseTemplateId })
+      const loRes = await learningOutcomesAPI.list({ course_template_id: courseTemplateId })
       const los = loRes.results || loRes || []
       los.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true }))
       setLearningOutcomes(los)
@@ -454,6 +454,32 @@ const InstructorCourseLoPo = () => {
                       }}>
                         <span>Weight:</span>
                         <span style={{ fontSize: '1rem' }}>{c.weight}</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'end',
+                        gap: '4px'
+                      }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          backgroundColor: c.approval_status === 'APPROVED' ? '#dcfce7' :
+                            c.approval_status === 'DECLINED' ? '#fee2e2' : '#fef9c3',
+                          color: c.approval_status === 'APPROVED' ? '#166534' :
+                            c.approval_status === 'DECLINED' ? '#991b1b' : '#854d0e',
+                          border: `1px solid ${c.approval_status === 'APPROVED' ? '#bbf7d0' :
+                            c.approval_status === 'DECLINED' ? '#fecaca' : '#fde047'}`
+                        }}>
+                          {c.approval_status || 'PENDING'}
+                        </span>
+                        {c.approval_status === 'DECLINED' && c.decline_reason && (
+                          <span style={{ fontSize: '0.7rem', color: '#dc2626', maxWidth: '150px', textAlign: 'right' }}>
+                            {c.decline_reason}
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => handleDeleteMapping(c.id)}

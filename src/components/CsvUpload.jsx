@@ -3,9 +3,9 @@ import './CsvUpload.css'
 
 /**
  * CsvUpload Component
- * Simple CSV file upload with parsing
+ * Simple CSV/Excel file upload with parsing
  */
-const CsvUpload = ({ onUpload, onParse }) => {
+const CsvUpload = ({ onUpload, onParse, disabled }) => {
   const [file, setFile] = useState(null)
   const [error, setError] = useState(null)
 
@@ -18,14 +18,18 @@ const CsvUpload = ({ onUpload, onParse }) => {
   }
 
   const parseCSV = (text) => {
+    // Handle both comma and semicolon as delimiter
     const lines = text.split('\n').filter(line => line.trim())
     if (lines.length < 2) {
-      throw new Error('CSV must have at least a header and one data row')
+      throw new Error('File must have at least a header and one data row')
     }
 
-    const headers = lines[0].split(',').map(h => h.trim())
+    // Detect delimiter (comma or semicolon)
+    const delimiter = lines[0].includes(';') ? ';' : ','
+
+    const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''))
     const rows = lines.slice(1).map(line => {
-      const values = line.split(',').map(v => v.trim())
+      const values = line.split(delimiter).map(v => v.trim().replace(/^["']|["']$/g, ''))
       const row = {}
       headers.forEach((header, idx) => {
         row[header] = values[idx] || ''
@@ -48,18 +52,19 @@ const CsvUpload = ({ onUpload, onParse }) => {
         try {
           const text = e.target.result
           const parsed = parseCSV(text)
-          
+
           if (onParse) {
             onParse(parsed)
           }
-          
+
           if (onUpload) {
             onUpload(parsed.rows)
           }
-          
+
+          setFile(null)
           setError(null)
         } catch (err) {
-          setError(err.message || 'Failed to parse CSV')
+          setError(err.message || 'Failed to parse file')
         }
       }
       reader.onerror = () => {
@@ -76,17 +81,20 @@ const CsvUpload = ({ onUpload, onParse }) => {
       <div className="form-group">
         <input
           type="file"
-          accept=".csv"
+          accept=".csv,.txt"
           onChange={handleFileChange}
           className="csv-input"
+          disabled={disabled}
+          style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
         />
       </div>
       {file && (
         <button
           onClick={handleUpload}
           className="btn btn-primary"
+          disabled={disabled}
         >
-          Upload & Parse CSV
+          Upload & Parse
         </button>
       )}
       {error && (
