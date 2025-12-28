@@ -13,7 +13,10 @@ class UserMeSerializer(serializers.ModelSerializer):
             "id", "email", "role", "department", "department_name", 
             "student_id", "enrollment_year", "class_year", "must_change_password",
             "first_name", "last_name", "active_courses"
+            "student_id", "enrollment_year", "class_year", "must_change_password",
+            "first_name", "last_name", "active_courses"
         )
+        read_only_fields = ("id", "email", "role", "department", "department_name", "class_year", "active_courses")
         read_only_fields = ("id", "email", "role", "department", "department_name", "class_year", "active_courses")
     
     def get_active_courses(self, obj):
@@ -35,7 +38,10 @@ class UserSerializer(serializers.ModelSerializer):
             "id", "email", "role", "department", "department_name", 
             "student_id", "enrollment_year", "class_year",
             "first_name", "last_name", "is_active", "date_joined"
+            "student_id", "enrollment_year", "class_year",
+            "first_name", "last_name", "is_active", "date_joined"
         ]
+        read_only_fields = ["id", "date_joined", "class_year"]
         read_only_fields = ["id", "date_joined", "class_year"]
         extra_kwargs = {"password": {"write_only": True}}
 
@@ -60,9 +66,11 @@ class StudentSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "first_name", "last_name", "student_id",
             "enrollment_year", "class_year",
+            "enrollment_year", "class_year",
             "department", "department_name", "is_active", "date_joined",
             "enrolled_courses_count", "po_scores"
         ]
+        read_only_fields = ["id", "date_joined", "class_year", "enrolled_courses_count", "po_scores"]
         read_only_fields = ["id", "date_joined", "class_year", "enrolled_courses_count", "po_scores"]
     
     def get_enrolled_courses_count(self, obj):
@@ -129,6 +137,8 @@ class DepartmentHeadSerializer(serializers.ModelSerializer):
 class DepartmentMemberCreateSerializer(serializers.ModelSerializer):
     """Serializer for Department Heads to create Instructors or Students."""
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    """Serializer for Department Heads to create Instructors or Students."""
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     
     class Meta:
         model = User
@@ -146,6 +156,31 @@ class DepartmentMemberCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        # Auto-generate password if not provided: FirstName + LastName (no spaces)
+        password = validated_data.pop('password', None)
+        if not password:
+            first_name = validated_data.get('first_name', '').strip().title()
+            last_name = validated_data.get('last_name', '').strip().title()
+            
+            # Normalize names in validated_data as well
+            validated_data['first_name'] = first_name
+            validated_data['last_name'] = last_name
+
+            raw_password = f"{first_name}{last_name}".replace(" ", "")
+            
+            # Helper for password normalization
+            replacements = {
+                'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G', 'ı': 'i', 'I': 'I', 'İ': 'I', 'ö': 'o', 'Ö': 'O', 'ş': 's', 'Ş': 'S', 'ü': 'u', 'Ü': 'U'
+            }
+            for tr, eng in replacements.items():
+                raw_password = raw_password.replace(tr, eng)
+            
+            password = raw_password
+        
+        # Set must_change_password for auto-generated passwords
+        validated_data['must_change_password'] = True
+        
+        user = User.objects.create_user(password=password, **validated_data)
         # Auto-generate password if not provided: FirstName + LastName (no spaces)
         password = validated_data.pop('password', None)
         if not password:
