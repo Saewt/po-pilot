@@ -21,6 +21,7 @@ from .users import (
     StudentSerializer,
     InstructorSerializer,
     DepartmentHeadSerializer,
+    StudentDashboardSerializer,
 )
 
 # Course serializers
@@ -82,6 +83,7 @@ __all__ = [
     "StudentSerializer",
     "InstructorSerializer",
     "DepartmentHeadSerializer",
+    "StudentDashboardSerializer",
     # Courses
     "CourseTemplateWriteSerializer",
     "CourseTemplateListSerializer",

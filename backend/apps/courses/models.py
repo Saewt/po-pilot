@@ -148,6 +148,10 @@ class Assessment(models.Model):
             decimal_places=2,
             validators=[MinValueValidator(0), MaxValueValidator(100)],
             help_text="Weight of this assessment towards the final course grade ex: 20 for 20%",)
+    description = models.TextField(
+            blank=True,
+            null=True,
+            help_text="Optional description of the assessment",)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

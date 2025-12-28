@@ -81,6 +81,54 @@ class AchievementViewSet(viewsets.GenericViewSet):
         
         po_results = AchievementCalculator.calculate_student_overall_po_achievements(student)
         
+        # Calculate course achievements for each enrolled course
+        active_courses = student.get_active_enrolled_courses().select_related('course_template', 'instructor')
+        course_achievements = []
+        
+        for course in active_courses:
+            course_po_results = AchievementCalculator.calculate_all_po_achievement_for_course(student, course)
+            
+            # Calculate overall achievement for this course (average of all PO achievements)
+            po_scores = [res.get('achievement', 0) for res in course_po_results]
+            overall_course_achievement = sum(po_scores) / len(po_scores) if po_scores else 0
+            
+            course_achievements.append({
+                "course_instance_id": course.id,
+                "course_name": course.course_template.name,
+                "course_code": course.course_template.get_full_code(),
+                "semester": course.semester,
+                "year": course.year,
+                "instructor_name": f"{course.instructor.first_name} {course.instructor.last_name}" if course.instructor else None,
+                "po_achievements": [
+                    {
+                        "po_id": res['program_outcome'].id,
+                        "po_code": res['program_outcome'].code,
+                        "po_full_code": res['program_outcome'].get_full_code(),
+                        "po_description": res['program_outcome'].description,
+                        "achievement_score": res.get('achievement', 0),
+                        "contribution_count": 1
+                    } for res in course_po_results
+                ],
+                "overall_achievement": round(overall_course_achievement, 2)
+            })
+        
+        # Calculate total and graded assessments
+        from apps.courses.models import Assessment
+        from apps.grades.models import AssessmentGrade
+        
+        total_assessments = Assessment.objects.filter(
+            course_instance__in=active_courses
+        ).count()
+        
+        graded_assessments = AssessmentGrade.objects.filter(
+            student=student,
+            assessment__course_instance__in=active_courses
+        ).count()
+        
+        # Calculate average achievement across all POs
+        overall_scores = [res.get('overall_achievement', 0) for res in po_results]
+        average_achievement = round(sum(overall_scores) / len(overall_scores), 2) if overall_scores else 0
+        
         # Construct response matching StudentOverallReportSerializer
         data = {
             "student_id": student.id,
@@ -99,13 +147,12 @@ class AchievementViewSet(viewsets.GenericViewSet):
                     "contribution_count": res.get('course_count', 0)
                 } for res in po_results
             ],
-            # Note: course_achievements details would require more calculation or a different calculator method
-            "course_achievements": [], 
+            "course_achievements": course_achievements,
             "total_courses": student.enrolled_courses.count(),
-            "active_courses": student.get_active_enrolled_courses().count(),
-            # Placeholders for now until we add these counts to calculator
-            "total_assessments": 0,
-            "graded_assessments": 0,
+            "active_courses": active_courses.count(),
+            "total_assessments": total_assessments,
+            "graded_assessments": graded_assessments,
+            "average_achievement": average_achievement,
         }
         
         serializer = StudentOverallReportSerializer(data)

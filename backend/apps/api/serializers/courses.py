@@ -197,7 +197,7 @@ class AssessmentWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Assessment
-        fields = ["id", "course_instance_id", "name", "assessment_type", "max_score", "weight"]
+        fields = ["id", "course_instance_id", "name", "assessment_type", "max_score", "weight", "description"]
         read_only_fields = ["id"]
 
     def validate(self, data):
@@ -233,7 +233,7 @@ class AssessmentListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Assessment
-        fields = ["id", "name", "assessment_type", "max_score", "weight"]
+        fields = ["id", "name", "assessment_type", "max_score", "weight", "description"]
 
 
 class AssessmentDetailSerializer(serializers.ModelSerializer):
@@ -243,7 +243,7 @@ class AssessmentDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Assessment
-        fields = ["id", "course_instance", "name", "assessment_type", "max_score", "weight", "lo_contributions"]
+        fields = ["id", "course_instance", "name", "assessment_type", "max_score", "weight", "description", "lo_contributions"]
         read_only_fields = ["id"]
 
     def get_lo_contributions(self, obj):
@@ -316,24 +316,72 @@ class LOtoPOContributionDetailSerializer(serializers.ModelSerializer):
 
 class AssessmentToLOContributionWriteSerializer(serializers.ModelSerializer):
     assessment_id = serializers.PrimaryKeyRelatedField(
-        source="assessment", queryset=Assessment.objects.all(), write_only=True
+        source="assessment", queryset=Assessment.objects.all(), write_only=True, required=False
     )
     learning_outcome_id = serializers.PrimaryKeyRelatedField(
-        source="learning_outcome", queryset=LearningOutcome.objects.all(), write_only=True
+        source="learning_outcome", queryset=LearningOutcome.objects.all(), write_only=True, required=False
     )
 
     class Meta:
         model = AssessmentToLOContribution
-        fields = ["assessment_id", "learning_outcome_id", "weight"]
+        fields = ["id", "assessment_id", "learning_outcome_id", "weight"]
         read_only_fields = ["id"]
+        # Disable automatic UniqueTogetherValidator - we handle this in validate()
+        validators = []
+    
+    def validate(self, data):
+        """
+        Custom validation to handle unique_together on updates.
+        Only check uniqueness if we're changing to a different assessment/LO combination.
+        """
+        # Get the values being set (from request or existing instance)
+        new_assessment = data.get('assessment')
+        new_lo = data.get('learning_outcome')
+        
+        # For creation, both fields are required
+        if not self.instance:
+            if not new_assessment:
+                raise serializers.ValidationError({"assessment_id": "This field is required."})
+            if not new_lo:
+                raise serializers.ValidationError({"learning_outcome_id": "This field is required."})
+        
+        # Get the effective values (new or existing)
+        assessment = new_assessment or (self.instance.assessment if self.instance else None)
+        learning_outcome = new_lo or (self.instance.learning_outcome if self.instance else None)
+        
+        # Check for duplicates only if this is a new combination
+        if assessment and learning_outcome:
+            # For updates: if combination unchanged, skip uniqueness check
+            if self.instance:
+                current_assessment = self.instance.assessment
+                current_lo = self.instance.learning_outcome
+                # If not changing the combo, it's fine
+                if assessment == current_assessment and learning_outcome == current_lo:
+                    return data
+            
+            # Check if this combination already exists (excluding current instance)
+            existing = AssessmentToLOContribution.objects.filter(
+                assessment=assessment,
+                learning_outcome=learning_outcome
+            )
+            if self.instance:
+                existing = existing.exclude(pk=self.instance.pk)
+            
+            if existing.exists():
+                raise serializers.ValidationError(
+                    "This assessment is already linked to this learning outcome."
+                )
+        
+        return data
 
 
 class AssessmentToLOContributionListSerializer(serializers.ModelSerializer):
+    assessment = AssessmentListSerializer(read_only=True)
     learning_outcome = LearningOutcomeListSerializer(read_only=True)
 
     class Meta:
         model = AssessmentToLOContribution
-        fields = ["id", "learning_outcome", "weight"]
+        fields = ["id", "assessment", "learning_outcome", "weight"]
 
 
 

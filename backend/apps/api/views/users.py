@@ -15,7 +15,8 @@ from apps.api.serializers.users import (
     BulkStudentCreateSerializer,
     BulkStudentResultSerializer,
     BulkStudentDeleteSerializer,
-    GPASerializer
+    GPASerializer,
+    StudentDashboardSerializer
 )
 from apps.api.permissions import IsDepartmentHead, IsStudent, IsInstructor
 from apps.grades.calculators import AchievementCalculator
@@ -54,11 +55,17 @@ class UserViewSet(ModelViewSet):
         - List/Retrieve: Department Head, Instructor, or Admin
         - Create: Department Head or Admin
         - Update/Delete: Admin only
+        - my_dashboard: Students only
+        - gpa/gpa_history: Student (own), Department Head, Admin
         """
         if self.action in ['list', 'retrieve']:
             permission_classes = [IsDepartmentHead | IsInstructor | IsAdminUser]
-        elif self.action in ['create', 'bulk_create_students','bulk_update_students','bulk_delete_students']:
-             permission_classes = [IsDepartmentHead | IsAdminUser]
+        elif self.action in ['create', 'bulk_create_students', 'bulk_update_students', 'bulk_delete_students']:
+            permission_classes = [IsDepartmentHead | IsAdminUser]
+        elif self.action == 'my_dashboard':
+            permission_classes = [IsStudent]
+        elif self.action in ['gpa', 'gpa_history']:
+            permission_classes = [IsStudent | IsDepartmentHead | IsAdminUser]
         else:
             permission_classes = [IsAdminUser]
         return [permission() for permission in permission_classes]
@@ -260,3 +267,127 @@ class UserViewSet(ModelViewSet):
         # For now, return current GPA.
         # Future: calculate cumulative GPA after each semester.
         return self.gpa(request, pk)
+
+    @extend_schema(
+        responses={200: StudentDashboardSerializer},
+        summary="Get student dashboard",
+        description="Get comprehensive student dashboard with GPA, courses, assessments, and PO achievement summary in a single call. Students can only access their own dashboard.",
+        tags=["users"]
+    )
+    @action(detail=False, methods=['get'], url_path='my/dashboard', permission_classes=[IsStudent])
+    def my_dashboard(self, request):
+        """
+        Get comprehensive student dashboard data in a single call.
+        Only accessible by students for their own data.
+        """
+        student = request.user
+        
+        if not student.is_student():
+            return Response({"detail": "Only students can access this endpoint."}, status=status.HTTP_403_FORBIDDEN)
+        
+        # GPA calculation (completed courses only)
+        gpa_data = AchievementCalculator.calculate_student_gpa(student)
+        
+        # Course counts
+        active_courses = student.get_active_enrolled_courses().select_related('course_template', 'instructor')
+        completed_courses = student.enrolled_courses.filter(is_active=False)
+        
+        # Calculate active credits and projected GPA
+        active_credits = sum(course.course_template.credit for course in active_courses)
+        
+        # Calculate projected GPA (includes current courses with current grades)
+        points_map = {
+            "AA": 4.00, "BA": 3.50, "BB": 3.00, "CB": 2.50,
+            "CC": 2.00, "DC": 1.50, "DD": 1.00, "FF": 0.00
+        }
+        
+        projected_points = gpa_data['gpa'] * gpa_data['total_credits']  # Start with completed courses
+        projected_credits = gpa_data['total_credits']
+        
+        for course in active_courses:
+            grade_info = AchievementCalculator.calculate_final_course_grade(student, course)
+            letter = grade_info['letter_grade']
+            points = points_map.get(letter, 0.0)
+            credit = course.course_template.credit
+            projected_points += points * credit
+            projected_credits += credit
+        
+        projected_gpa = round(projected_points / projected_credits, 2) if projected_credits > 0 else 0.0
+        
+        # Assessment counts
+        from apps.courses.models import Assessment
+        from apps.grades.models import AssessmentGrade
+        
+        total_assessments = Assessment.objects.filter(
+            course_instance__in=active_courses
+        ).count()
+        
+        graded_assessments = AssessmentGrade.objects.filter(
+            student=student,
+            assessment__course_instance__in=active_courses
+        ).count()
+        
+        pending_assessments = total_assessments - graded_assessments
+        
+        # PO achievement summary
+        po_results = AchievementCalculator.calculate_student_overall_po_achievements(student)
+        overall_scores = [res.get('overall_achievement', 0) for res in po_results]
+        average_po = round(sum(overall_scores) / len(overall_scores), 2) if overall_scores else None
+        
+        # Active courses list (simplified)
+        active_course_list = [
+            {
+                "id": course.id,
+                "name": course.course_template.name,
+                "code": course.course_template.get_full_code(),
+                "semester": course.semester,
+                "year": course.year,
+                "instructor": f"{course.instructor.first_name} {course.instructor.last_name}" if course.instructor else None
+            }
+            for course in active_courses
+        ]
+        
+        # Recent grades (last 5)
+        recent_grades_qs = AssessmentGrade.objects.filter(
+            student=student
+        ).select_related('assessment__course_instance__course_template').order_by('-created_at')[:5]
+        
+        recent_grades = [
+            {
+                "assessment_name": grade.assessment.name,
+                "course_name": grade.assessment.course_instance.course_template.name,
+                "score": float(grade.score),
+                "max_score": float(grade.assessment.max_score),
+                "entered_at": grade.created_at.isoformat() if grade.created_at else None
+            }
+            for grade in recent_grades_qs
+        ]
+        
+        data = {
+            "student_id": student.id,
+            "student_number": student.student_id,
+            "student_name": f"{student.first_name} {student.last_name}",
+            "student_email": student.email,
+            "department_name": student.department.name if student.department else "N/A",
+            "department_code": student.department.code if student.department else "N/A",
+            "class_year": student.class_year,
+            "enrollment_year": student.enrollment_year,
+            "official_gpa": gpa_data['gpa'],
+            "current_gpa": projected_gpa,
+            "earned_credits": gpa_data['total_credits'],
+            "active_credits": active_credits,
+            "total_courses": student.enrolled_courses.count(),
+            "active_courses": active_courses.count(),
+            "completed_courses": completed_courses.count(),
+            "total_assessments": total_assessments,
+            "graded_assessments": graded_assessments,
+            "pending_assessments": pending_assessments,
+            "average_po_achievement": average_po,
+            "po_count": len(po_results),
+            "active_course_list": active_course_list,
+            "recent_grades": recent_grades,
+        }
+        
+        serializer = StudentDashboardSerializer(data)
+        return Response(serializer.data)
+

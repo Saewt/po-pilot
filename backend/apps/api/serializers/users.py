@@ -257,3 +257,51 @@ class GPASerializer(serializers.Serializer):
         child=serializers.DictField(),
         help_text="Breakdown of completed courses and points"
     )
+
+
+class StudentDashboardSerializer(serializers.Serializer):
+    """
+    Comprehensive student dashboard serializer.
+    Aggregates all student statistics in a single response.
+    """
+    # Basic student info
+    student_id = serializers.IntegerField()
+    student_number = serializers.CharField()
+    student_name = serializers.CharField()
+    student_email = serializers.EmailField()
+    department_name = serializers.CharField()
+    department_code = serializers.CharField()
+    class_year = serializers.IntegerField(allow_null=True)
+    enrollment_year = serializers.IntegerField(allow_null=True)
+    
+    # GPA data
+    official_gpa = serializers.DecimalField(max_digits=4, decimal_places=2, help_text="Official GPA from completed courses only")
+    current_gpa = serializers.DecimalField(max_digits=4, decimal_places=2, help_text="Current GPA including active course grades")
+    earned_credits = serializers.IntegerField(help_text="Credits earned from completed courses")
+    active_credits = serializers.IntegerField(help_text="Credits currently in-progress")
+    
+    # Course enrollment
+    total_courses = serializers.IntegerField()
+    active_courses = serializers.IntegerField()
+    completed_courses = serializers.IntegerField()
+    
+    # Assessment statistics
+    total_assessments = serializers.IntegerField()
+    graded_assessments = serializers.IntegerField()
+    pending_assessments = serializers.IntegerField()
+    
+    # PO Achievement summary (only averages, not full details)
+    average_po_achievement = serializers.DecimalField(max_digits=5, decimal_places=2, allow_null=True)
+    po_count = serializers.IntegerField()
+    
+    # Active courses list (simplified)
+    active_course_list = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="List of active courses with basic info"
+    )
+    
+    # Recent grades (last 5)
+    recent_grades = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="Last 5 graded assessments"
+    )
