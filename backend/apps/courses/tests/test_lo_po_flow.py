@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from apps.core.models import Department, ProgramOutcome
-from apps.courses.models import CourseTemplate, LearningOutcome, LOtoPOContribution
+from apps.courses.models import CourseTemplate, CourseInstance, LearningOutcome, LOtoPOContribution
 
 User = get_user_model()
 
@@ -42,6 +42,14 @@ class LOPOFlowTests(APITestCase):
         )
         self.lo2 = LearningOutcome.objects.create(
             course_template=self.course2, code="1", description="Understand usage"
+        )
+
+        # Create Course Instances with instructor (required for LO filtering)
+        self.course_instance1 = CourseInstance.objects.create(
+            course_template=self.course1, semester="Fall", year=2024, instructor=self.instructor
+        )
+        self.course_instance2 = CourseInstance.objects.create(
+            course_template=self.course2, semester="Fall", year=2024, instructor=self.instructor
         )
 
         # Create Contribution
@@ -94,15 +102,14 @@ class LOPOFlowTests(APITestCase):
         self.assertFalse(self.contribution.is_approved)
         self.assertIsNone(self.contribution.approved_by)
 
-        # Approve first (to switch back potentially? or just reject pending)
-        # Let's reject pending
-        url = reverse("lo-po-contribution-reject", args=[self.contribution.id])
-        response = self.client.post(url)
+        # Reject using the approval_action endpoint
+        url = reverse("lo-po-contribution-approval-action", args=[self.contribution.id])
+        response = self.client.post(url, {"action": "decline", "reason": "Test rejection"})
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.contribution.refresh_from_db()
         
-        self.assertFalse(self.contribution.is_approved)
+        self.assertTrue(self.contribution.is_declined)
         self.assertEqual(self.contribution.approved_by, self.head)
         self.assertIsNotNone(self.contribution.approved_at)
 
@@ -110,10 +117,10 @@ class LOPOFlowTests(APITestCase):
         summary_url = reverse("program-outcome-lo-summary", args=[self.po.id])
         response = self.client.get(summary_url)
         item = response.data["contributions"][0]
-        self.assertEqual(item["status"], "Rejected")
+        self.assertEqual(item["status"], "Declined")
     
     def test_reject_permission(self):
         self.client.force_authenticate(user=self.instructor)
-        url = reverse("lo-po-contribution-reject", args=[self.contribution.id])
-        response = self.client.post(url)
+        url = reverse("lo-po-contribution-approval-action", args=[self.contribution.id])
+        response = self.client.post(url, {"action": "decline", "reason": "Test"})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

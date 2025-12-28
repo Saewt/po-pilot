@@ -341,19 +341,21 @@ class GradingApprovalTests(APITestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         contrib_id = response.data["id"]
-        self.assertFalse(response.data["is_approved"])
+        # Check approval_status field instead of is_approved
+        self.assertEqual(response.data["approval_status"], "PENDING")
         
         # Instructor check status -> Success
         response = self.client.get(reverse("lo-po-contribution-detail", args=[contrib_id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # Instructor try approve -> Forbidden (Action not found or forbidden)
-        approve_url = reverse("lo-po-contribution-approve", args=[contrib_id])
-        response = self.client.post(approve_url)
+        # Instructor try approve -> Forbidden (action endpoint uses permission check)
+        approve_url = reverse("lo-po-contribution-approval-action", args=[contrib_id])
+        response = self.client.post(approve_url, {"action": "approve"})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         
         # Dept Head approve -> Success
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.get_token(self.dept_head)}")
-        response = self.client.post(approve_url)
+        response = self.client.post(approve_url, {"action": "approve"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["is_approved"])
+        # Check approval_status field instead of is_approved
+        self.assertEqual(response.data["approval_status"], "APPROVED")

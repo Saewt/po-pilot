@@ -39,6 +39,10 @@ from apps.api.serializers.courses import (
     CourseStudentSerializer,
     FinalGradeSerializer,
     GradeDistributionSerializer,
+    # Finalization Serializers
+    FinalizeCourseValidationSerializer,
+    FinalizeCourseResponseSerializer,
+    CourseSummarySerializer,
 )
 # Note: LOtoPOContributionViewSet is in core.py, but used serializers from courses.py which I updated.
 
@@ -64,6 +68,14 @@ class LearningOutcomeViewSet(ModelViewSet):
             return LearningOutcomeDetailSerializer
         return LearningOutcomeListSerializer
     
+    def get_serializer_context(self):
+        """Pass course_instance_id to serializer for filtering assessment_contributions."""
+        context = super().get_serializer_context()
+        course_instance_id = self.request.query_params.get('course_instance_id')
+        if course_instance_id:
+            context['course_instance_id'] = course_instance_id
+        return context
+    
     def get_queryset(self):
         queryset = super().get_queryset()
         user = self.request.user
@@ -82,6 +94,13 @@ class LearningOutcomeViewSet(ModelViewSet):
         
         if self.action == 'retrieve':
             queryset = queryset.prefetch_related('po_contributions', 'assessment_contributions')
+        elif self.action == 'list':
+            # Prefetch contributions for list serializer
+            from django.db.models import Prefetch
+            queryset = queryset.prefetch_related(
+                Prefetch('po_contributions', to_attr='prefetched_po_contributions'),
+                Prefetch('assessment_contributions', to_attr='prefetched_assessment_contributions')
+            )
         
         # Role-based filtering
         if user.is_instructor():
@@ -542,6 +561,283 @@ class CourseInstanceViewSet(ModelViewSet):
         serializer = GradeDistributionSerializer(result)
         return Response(serializer.data)
 
+    @extend_schema(
+        responses={
+            200: FinalizeCourseResponseSerializer,
+            400: FinalizeCourseValidationSerializer
+        },
+        summary="Finalize course",
+        description="Finalize a course: validate weights sum to 100%, all grades entered, then lock the course.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['post'], permission_classes=[(IsInstructor & IsCourseInstructor) | IsDepartmentHead | IsAdminUser])
+    def finalize(self, request, pk=None):
+        """
+        Finalize a course instance:
+        1. Validate assessment weights sum to 100%
+        2. Validate all students have grades for all assessments
+        3. Set is_active=False, finalized_at, finalized_by
+        """
+        from django.utils import timezone
+        from apps.grades.models import AssessmentGrade
+        from decimal import Decimal
+        
+        course_instance = self.get_object()
+        
+        # Check if already finalized
+        if course_instance.is_finalized:
+            return Response(
+                {"detail": "Course is already finalized."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Gather validation data
+        assessments = list(course_instance.assessments.all())
+        students = list(course_instance.students.all())
+        
+        # Check weight total
+        total_weight = sum(a.weight for a in assessments) if assessments else Decimal(0)
+        weight_ok = total_weight == Decimal(100)
+        missing_weight = Decimal(100) - total_weight if not weight_ok else None
+        
+        # Check for missing grades
+        all_grades = AssessmentGrade.objects.filter(
+            assessment__course_instance=course_instance
+        )
+        grades_by_student = defaultdict(set)
+        for grade in all_grades:
+            grades_by_student[grade.student_id].add(grade.assessment_id)
+        
+        assessment_ids = {a.id for a in assessments}
+        students_missing_grades = []
+        students_fully_graded = 0
+        
+        for student in students:
+            student_grades = grades_by_student.get(student.id, set())
+            missing_assessments = assessment_ids - student_grades
+            
+            if missing_assessments:
+                missing_names = [a.name for a in assessments if a.id in missing_assessments]
+                students_missing_grades.append({
+                    "student_id": student.id,
+                    "student_number": student.student_id,
+                    "student_name": f"{student.first_name} {student.last_name}",
+                    "missing_assessments": missing_names
+                })
+            else:
+                students_fully_graded += 1
+        
+        can_finalize = weight_ok and len(students_missing_grades) == 0
+        
+        # Return validation errors if cannot finalize
+        if not can_finalize:
+            validation_result = {
+                "can_finalize": False,
+                "current_weight_total": float(total_weight),
+                "missing_weight": float(missing_weight) if missing_weight else None,
+                "students_missing_grades": students_missing_grades,
+                "total_students": len(students),
+                "students_fully_graded": students_fully_graded
+            }
+            serializer = FinalizeCourseValidationSerializer(validation_result)
+            return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Finalize the course
+        with transaction.atomic():
+            course_instance.is_active = False
+            course_instance.finalized_at = timezone.now()
+            course_instance.finalized_by = request.user
+            course_instance.save()
+        
+        # Calculate grade distribution for response
+        distribution = defaultdict(int)
+        for student in students:
+            grade_info = AchievementCalculator.calculate_final_course_grade(student, course_instance)
+            distribution[grade_info['letter_grade']] += 1
+        
+        result = {
+            "message": "Course finalized successfully.",
+            "finalized_at": course_instance.finalized_at,
+            "finalized_by": f"{request.user.first_name} {request.user.last_name}",
+            "total_students": len(students),
+            "grade_distribution": dict(distribution)
+        }
+        
+        serializer = FinalizeCourseResponseSerializer(result)
+        return Response(serializer.data)
+
+    @extend_schema(
+        responses={200: {"type": "object", "properties": {"message": {"type": "string"}}}},
+        summary="Unfinalize course",
+        description="Revert a finalized course back to active status. Department Heads and Admins only.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['post'], permission_classes=[IsDepartmentHead | IsAdminUser])
+    def unfinalize(self, request, pk=None):
+        """
+        Revert a finalized course back to active status.
+        Only Department Heads and Admins can unfinalize.
+        """
+        course_instance = self.get_object()
+        
+        if not course_instance.is_finalized:
+            return Response(
+                {"detail": "Course is not finalized."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            course_instance.is_active = True
+            course_instance.finalized_at = None
+            course_instance.finalized_by = None
+            course_instance.save()
+        
+        return Response({
+            "message": "Course unfinalized successfully. Grades can now be edited."
+        })
+
+    @extend_schema(
+        responses={200: CourseSummarySerializer},
+        summary="Get course summary for student",
+        description="Get comprehensive end-of-course summary for a specific student.",
+        tags=["course-instances"]
+    )
+    @action(detail=True, methods=['get'], url_path='summary/(?P<student_id>[^/.]+)')
+    def course_summary(self, request, pk=None, student_id=None):
+        """
+        Get comprehensive course summary for a student.
+        Accessible by the student themselves, course instructor, dept head, or admin.
+        """
+        from django.contrib.auth import get_user_model
+        from apps.grades.models import AssessmentGrade
+        from decimal import Decimal
+        
+        User = get_user_model()
+        course_instance = self.get_object()
+        
+        # Get student
+        try:
+            student = User.objects.get(student_id=student_id)
+        except User.DoesNotExist:
+            return Response({"detail": "Student not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Permission check
+        is_self = request.user == student
+        is_instructor = course_instance.instructor == request.user
+        is_dept_head = request.user.is_department_head() and request.user.department == course_instance.course_template.department
+        
+        if not (is_self or is_instructor or is_dept_head or request.user.is_staff):
+            return Response(
+                {"detail": "You do not have permission to view this summary."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check enrollment
+        if not course_instance.students.filter(id=student.id).exists():
+            return Response(
+                {"detail": "Student is not enrolled in this course."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get assessments and grades
+        assessments = list(course_instance.assessments.all())
+        student_grades = AssessmentGrade.objects.filter(
+            student=student,
+            assessment__course_instance=course_instance
+        )
+        grades_map = {g.assessment_id: g.score for g in student_grades}
+        
+        # Build assessment details
+        assessment_details = []
+        for assessment in assessments:
+            score = grades_map.get(assessment.id)
+            weighted_score = None
+            if score is not None and assessment.max_score > 0:
+                weighted_score = (score / assessment.max_score) * assessment.weight
+            
+            assessment_details.append({
+                "assessment_id": assessment.id,
+                "assessment_name": assessment.name,
+                "assessment_type": assessment.assessment_type,
+                "score": float(score) if score else None,
+                "max_score": float(assessment.max_score),
+                "weight": float(assessment.weight),
+                "weighted_score": round(float(weighted_score), 2) if weighted_score else None
+            })
+        
+        # Get final grade
+        grade_info = AchievementCalculator.calculate_final_course_grade(student, course_instance)
+        
+        # Get LO achievements
+        from apps.courses.models import LearningOutcome, AssessmentToLOContribution
+        
+        los = LearningOutcome.objects.filter(
+            course_template=course_instance.course_template
+        )
+        
+        lo_achievements = []
+        for lo in los:
+            # Calculate LO achievement (weighted average of assessment scores contributing to this LO)
+            lo_contribs = AssessmentToLOContribution.objects.filter(
+                learning_outcome=lo,
+                assessment__course_instance=course_instance
+            )
+            
+            total_weighted = Decimal(0)
+            total_weight = Decimal(0)
+            
+            for contrib in lo_contribs:
+                score = grades_map.get(contrib.assessment_id)
+                if score is not None:
+                    total_weighted += score * contrib.weight
+                    total_weight += contrib.weight
+            
+            achievement = None
+            if total_weight > 0:
+                achievement = float(total_weighted / total_weight)
+            
+            lo_achievements.append({
+                "lo_id": lo.id,
+                "lo_code": lo.code,
+                "lo_description": lo.description,
+                "achievement": round(achievement, 2) if achievement else None
+            })
+        
+        # Get PO achievements for this course
+        po_results = AchievementCalculator.calculate_all_po_achievement_for_course(student, course_instance)
+        po_achievements = [
+            {
+                "po_id": res['program_outcome'].id,
+                "po_code": res['program_outcome'].code,
+                "po_full_code": res['program_outcome'].get_full_code(),
+                "po_description": res['program_outcome'].description,
+                "achievement": res.get('achievement')
+            }
+            for res in po_results
+        ]
+        
+        # Build response
+        data = {
+            "course_instance_id": course_instance.id,
+            "course_name": course_instance.course_template.name,
+            "course_code": course_instance.course_template.get_full_code(),
+            "semester": course_instance.semester,
+            "year": course_instance.year,
+            "credit": course_instance.course_template.credit,
+            "instructor_name": f"{course_instance.instructor.first_name} {course_instance.instructor.last_name}" if course_instance.instructor else None,
+            "is_finalized": course_instance.is_finalized,
+            "finalized_at": course_instance.finalized_at,
+            "final_score": grade_info['total_score'],
+            "normalized_score": grade_info.get('normalized_score', grade_info['total_score']),
+            "letter_grade": grade_info['letter_grade'],
+            "assessments": assessment_details,
+            "lo_achievements": lo_achievements,
+            "po_achievements": po_achievements
+        }
+        
+        serializer = CourseSummarySerializer(data)
+        return Response(serializer.data)
+
 
 class AssessmentViewSet(ModelViewSet):
     """
@@ -569,11 +865,17 @@ class AssessmentViewSet(ModelViewSet):
 
     def get_queryset(self):
         """
-        Filter assessments based on user role.
+        Filter assessments based on user role and optional course_instance filter.
         """
         queryset = super().get_queryset()
         user = self.request.user
         
+        # Filter by course_instance query parameter
+        course_instance_id = self.request.query_params.get('course_instance')
+        if course_instance_id:
+            queryset = queryset.filter(course_instance_id=course_instance_id)
+        
+        # Role-based filtering
         if user.is_department_head() or user.is_staff:
             return queryset
         

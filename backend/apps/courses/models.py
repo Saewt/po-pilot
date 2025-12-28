@@ -67,13 +67,34 @@ class CourseInstance(models.Model):
         limit_choices_to=Q(role="STUDENT"),
     )
     is_active = models.BooleanField(default=True)
+    finalized_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Timestamp when the course was finalized and grades locked"
+    )
+    finalized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="finalized_courses",
+        help_text="User who finalized this course"
+    )
+
     class Meta:
         unique_together = ("course_template", "semester", "year")
         ordering = ["-year", "semester"]
+
     def __str__(self):
         return f"{self.course_template} - {self.semester} {self.year}"
+
     def get_full_code(self):
         return f"{self.course_template.get_full_code()} - {self.semester} {self.year}"
+    
+    @property
+    def is_finalized(self):
+        """Check if course has been finalized."""
+        return self.finalized_at is not None
 
 
 

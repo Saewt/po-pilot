@@ -300,6 +300,12 @@ class StudentDashboardSerializer(serializers.Serializer):
         help_text="List of active courses with basic info"
     )
     
+    # Completed courses list with final grades
+    completed_course_list = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="List of completed/finalized courses with final grades"
+    )
+    
     # Recent grades (last 5)
     recent_grades = serializers.ListField(
         child=serializers.DictField(),

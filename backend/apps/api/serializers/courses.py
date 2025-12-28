@@ -86,12 +86,48 @@ class LearningOutcomeWriteSerializer(serializers.ModelSerializer):
 
 
 class LearningOutcomeListSerializer(serializers.ModelSerializer):
-    """Response summary for LOs."""
+    """Response summary for LOs with contribution weights."""
     full_code = serializers.ReadOnlyField(source="get_full_code")
+    po_contributions = serializers.SerializerMethodField()
+    assessment_contributions = serializers.SerializerMethodField()
 
     class Meta:
         model = LearningOutcome
-        fields = ["id", "full_code", "description"]
+        fields = ["id", "full_code", "description", "po_contributions", "assessment_contributions"]
+
+    def get_po_contributions(self, obj):
+        """Return LO-PO contribution weights with PO description."""
+        contribs = getattr(obj, 'prefetched_po_contributions', obj.po_contributions.all())
+        return [
+            {
+                "id": c.id,
+                "program_outcome_id": c.program_outcome_id,
+                "program_outcome_code": c.program_outcome.get_full_code() if c.program_outcome else None,
+                "program_outcome_description": c.program_outcome.description if c.program_outcome else None,
+                "weight": float(c.weight),
+                "approval_status": c.approval_status
+            }
+            for c in contribs
+        ]
+
+    def get_assessment_contributions(self, obj):
+        """Return Assessment-LO contribution weights, filtered by course_instance if provided."""
+        contribs = getattr(obj, 'prefetched_assessment_contributions', obj.assessment_contributions.all())
+        
+        # Filter by course_instance if provided in context
+        course_instance_id = self.context.get('course_instance_id')
+        if course_instance_id:
+            contribs = [c for c in contribs if c.assessment and c.assessment.course_instance_id == int(course_instance_id)]
+        
+        return [
+            {
+                "id": c.id,
+                "assessment_id": c.assessment_id,
+                "assessment_name": c.assessment.name if c.assessment else None,
+                "weight": float(c.weight)
+            }
+            for c in contribs
+        ]
 
 
 class LearningOutcomeDetailSerializer(serializers.ModelSerializer):
@@ -148,10 +184,11 @@ class CourseInstanceListSerializer(serializers.ModelSerializer):
     course_name = serializers.ReadOnlyField(source="course_template.name")
     target_class_year = serializers.ReadOnlyField(source="course_template.target_class_year")
     instructor = serializers.SerializerMethodField()
+    is_finalized = serializers.ReadOnlyField()
 
     class Meta:
         model = CourseInstance
-        fields = ["id", "full_code", "course_name", "target_class_year", "semester", "year", "instructor", "is_active"]
+        fields = ["id", "full_code", "course_name", "target_class_year", "semester", "year", "instructor", "is_active", "is_finalized", "finalized_at"]
 
     def get_instructor(self, obj):
         if obj.instructor:
@@ -167,13 +204,15 @@ class CourseInstanceDetailSerializer(serializers.ModelSerializer):
     students = UserSerializer(many=True, read_only=True)
     students_count = serializers.IntegerField(read_only=True)
     assessments_summary = serializers.SerializerMethodField()
+    is_finalized = serializers.ReadOnlyField()
+    finalized_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = CourseInstance
         fields = [
             "id", "full_code", "semester", "year", 
             "course_template", "instructor", "students", "students_count", 
-            "assessments_summary", "is_active"
+            "assessments_summary", "is_active", "is_finalized", "finalized_at", "finalized_by_name"
         ]
         read_only_fields = ["id"]
 
@@ -181,6 +220,11 @@ class CourseInstanceDetailSerializer(serializers.ModelSerializer):
         return {
             "count": getattr(obj, "assessments_count", obj.assessments.count()),
         }
+    
+    def get_finalized_by_name(self, obj):
+        if obj.finalized_by:
+            return f"{obj.finalized_by.first_name} {obj.finalized_by.last_name}"
+        return None
 
 
 # -----------------------------------------------------------------------------
@@ -498,3 +542,91 @@ class GradeDistributionSerializer(serializers.Serializer):
     )
     average_score = serializers.DecimalField(max_digits=5, decimal_places=2)
 
+
+# -----------------------------------------------------------------------------
+# COURSE FINALIZATION SERIALIZERS
+# -----------------------------------------------------------------------------
+
+class FinalizeCourseValidationSerializer(serializers.Serializer):
+    """Validation response when finalization fails."""
+    can_finalize = serializers.BooleanField(
+        help_text="Whether the course can be finalized"
+    )
+    current_weight_total = serializers.DecimalField(
+        max_digits=5, decimal_places=2,
+        help_text="Current total of assessment weights"
+    )
+    missing_weight = serializers.DecimalField(
+        max_digits=5, decimal_places=2, allow_null=True,
+        help_text="Weight needed to reach 100% (if not complete)"
+    )
+    students_missing_grades = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="List of students with missing grade info"
+    )
+    total_students = serializers.IntegerField()
+    students_fully_graded = serializers.IntegerField()
+
+
+class FinalizeCourseResponseSerializer(serializers.Serializer):
+    """Response after successful course finalization."""
+    message = serializers.CharField()
+    finalized_at = serializers.DateTimeField()
+    finalized_by = serializers.CharField()
+    total_students = serializers.IntegerField()
+    grade_distribution = serializers.DictField(
+        child=serializers.IntegerField(),
+        help_text="Distribution of letter grades"
+    )
+
+
+class AssessmentGradeSummarySerializer(serializers.Serializer):
+    """Individual assessment with student's grade for course summary."""
+    assessment_id = serializers.IntegerField()
+    assessment_name = serializers.CharField()
+    assessment_type = serializers.CharField()
+    score = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True)
+    max_score = serializers.DecimalField(max_digits=6, decimal_places=2)
+    weight = serializers.DecimalField(max_digits=5, decimal_places=2)
+    weighted_score = serializers.DecimalField(max_digits=5, decimal_places=2, allow_null=True)
+
+
+class LOAchievementSummarySerializer(serializers.Serializer):
+    """LO achievement for course summary."""
+    lo_id = serializers.IntegerField()
+    lo_code = serializers.CharField()
+    lo_description = serializers.CharField()
+    achievement = serializers.DecimalField(max_digits=5, decimal_places=2, allow_null=True)
+
+
+class POAchievementSummarySerializer(serializers.Serializer):
+    """PO achievement for course summary."""
+    po_id = serializers.IntegerField()
+    po_code = serializers.CharField()
+    po_full_code = serializers.CharField()
+    po_description = serializers.CharField()
+    achievement = serializers.DecimalField(max_digits=5, decimal_places=2, allow_null=True)
+
+
+class CourseSummarySerializer(serializers.Serializer):
+    """Comprehensive course summary for a student."""
+    # Course info
+    course_instance_id = serializers.IntegerField()
+    course_name = serializers.CharField()
+    course_code = serializers.CharField()
+    semester = serializers.CharField()
+    year = serializers.IntegerField()
+    credit = serializers.IntegerField()
+    instructor_name = serializers.CharField(allow_null=True)
+    is_finalized = serializers.BooleanField()
+    finalized_at = serializers.DateTimeField(allow_null=True)
+    
+    # Grade summary
+    final_score = serializers.DecimalField(max_digits=5, decimal_places=2)
+    normalized_score = serializers.DecimalField(max_digits=5, decimal_places=2)
+    letter_grade = serializers.CharField()
+    
+    # Detailed breakdown
+    assessments = AssessmentGradeSummarySerializer(many=True)
+    lo_achievements = LOAchievementSummarySerializer(many=True)
+    po_achievements = POAchievementSummarySerializer(many=True)

@@ -74,7 +74,8 @@ class AchievementCalculator:
         if not student.department:
             return []
         program_outcomes = student.department.program_outcomes.filter(is_active=True)
-        enrolled_courses = student.get_active_enrolled_courses().filter(is_active=True).select_related('course_template__department')
+        # Include BOTH active and completed courses for overall PO achievement
+        enrolled_courses = student.enrolled_courses.all().select_related('course_template__department')
         course_templates = [c.course_template for c in enrolled_courses]
         
         student_grades = AssessmentGrade.objects.filter(

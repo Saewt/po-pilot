@@ -348,6 +348,24 @@ class UserViewSet(ModelViewSet):
             for course in active_courses
         ]
         
+        # Completed courses list with final grades
+        completed_course_list = []
+        for course in completed_courses.select_related('course_template', 'instructor'):
+            grade_info = AchievementCalculator.calculate_final_course_grade(student, course)
+            completed_course_list.append({
+                "id": course.id,
+                "name": course.course_template.name,
+                "code": course.course_template.get_full_code(),
+                "semester": course.semester,
+                "year": course.year,
+                "credit": course.course_template.credit,
+                "instructor": f"{course.instructor.first_name} {course.instructor.last_name}" if course.instructor else None,
+                "final_score": grade_info['total_score'],
+                "letter_grade": grade_info['letter_grade'],
+                "is_finalized": course.is_finalized,
+                "finalized_at": course.finalized_at.isoformat() if course.finalized_at else None
+            })
+        
         # Recent grades (last 5)
         recent_grades_qs = AssessmentGrade.objects.filter(
             student=student
@@ -386,6 +404,7 @@ class UserViewSet(ModelViewSet):
             "average_po_achievement": average_po,
             "po_count": len(po_results),
             "active_course_list": active_course_list,
+            "completed_course_list": completed_course_list,
             "recent_grades": recent_grades,
         }
         
