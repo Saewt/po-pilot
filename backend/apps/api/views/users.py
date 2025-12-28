@@ -100,8 +100,6 @@ class UserViewSet(ModelViewSet):
         
         # Department Heads and Instructors only see their own department's users
         if (user.is_department_head() or user.is_instructor()) and not user.is_staff:
-        # Department Heads and Instructors only see their own department's users
-        if (user.is_department_head() or user.is_instructor()) and not user.is_staff:
             queryset = queryset.filter(department=user.department)
         
         return queryset.select_related('department')
